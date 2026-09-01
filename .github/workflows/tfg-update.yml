@@ -239,6 +239,9 @@ jobs:
           patch_append config/modernfix-mixins.properties "mixin.perf.clear_mixin_classinfo=false"
           patch_append server.properties "enable-query=true"
           patch_append server.properties "enable-rcon=true"
+          # TFC worldgen: must be set before the first boot creates the world.
+          # Appended last so it wins over any vanilla level-type above it.
+          patch_append server.properties "level-type=tfc:overworld"
           echo "## TFG updated to $LATEST" >> "$GITHUB_STEP_SUMMARY"
           echo "- Players must install the matching client from $RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- World untouched (wipe_world was not set). Restart the server in G-Portal to load the update." >> "$GITHUB_STEP_SUMMARY"
