@@ -1,0 +1,255 @@
+# Switch the G-Portal server to TerraFirmaGreg (TFG), pulled fresh from
+# CurseForge on the runner (public website API, no key needed). REPLACES
+# whatever the server is currently running - by default it also deletes the
+# old world and pack folders over FTP first. The Star Wars pack is untouched
+# in this repo; deploy-server.yml puts it back.
+#
+# Usage: STOP the server in the G-Portal panel, run this workflow, then in the
+# panel set the Forge version this run prints in its summary, and START. The
+# summary also names the exact TFG version - friends must install that same
+# version from the CurseForge app (search TerraFirmaGreg).
+name: Switch server to TerraFirmaGreg
+on:
+  workflow_dispatch:
+    inputs:
+      version_match:
+        description: regex the file displayName must match (empty = newest)
+        required: false
+        default: ""
+      wipe_old:
+        description: delete old pack folders + world over FTP first ("true"/"false")
+        required: false
+        default: "true"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build TFG server payload
+        env:
+          VMATCH: ${{ inputs.version_match }}
+          GH_TOKEN: ${{ github.token }}
+          CF_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, re, shutil, sys, urllib.request, zipfile
+
+          vmatch = os.environ.get('VMATCH', '')
+          version_label = None
+
+          def get_json(url, headers):
+              h = dict(headers); h.setdefault('User-Agent', 'modpack-server-deploy')
+              return json.load(urllib.request.urlopen(
+                  urllib.request.Request(url, headers=h)))
+
+          def download(url, headers, dst):
+              h = dict(headers); h.setdefault('User-Agent', 'modpack-server-deploy')
+              with urllib.request.urlopen(urllib.request.Request(url, headers=h)) as r:
+                  with open(dst, 'wb') as f:
+                      shutil.copyfileobj(r, f)
+
+          got = False
+          cf_key = os.environ.get('CF_KEY', '')
+          if cf_key:
+              # Preferred when a key exists: the official CurseForge API.
+              H = {'x-api-key': cf_key, 'Accept': 'application/json'}
+              s = get_json('https://api.curseforge.com/v1/mods/search?gameId=432'
+                           '&classId=4471&searchFilter=terrafirmagreg'
+                           '&sortField=2&sortOrder=desc', H)
+              mods = s.get('data', [])
+              if not mods:
+                  sys.exit('CurseForge API: no modpack found for terrafirmagreg')
+              for m in mods[:10]:
+                  print('CF candidate:', m['id'], m['name'], '(slug %s)' % m.get('slug'))
+              mod = next((m for m in mods
+                          if 'terrafirmagreg' in m.get('slug', '').lower()), mods[0])
+              files = get_json('https://api.curseforge.com/v1/mods/%d/files?pageSize=50'
+                               % mod['id'], H)['data']
+              files.sort(key=lambda f: f.get('fileDate', ''), reverse=True)
+              if vmatch:
+                  files = [f for f in files if re.search(
+                      vmatch, f.get('displayName', '') + ' ' + f.get('fileName', ''))]
+              if not files:
+                  sys.exit('no CurseForge file matches %r' % vmatch)
+              main = files[0]
+              version_label = main.get('displayName')
+              fid = main.get('serverPackFileId')
+              if not fid:
+                  sys.exit('newest CF file %r has no server pack id' % version_label)
+              f = get_json('https://api.curseforge.com/v1/mods/%d/files/%d'
+                           % (mod['id'], fid), H)['data']
+              url = f.get('downloadUrl')
+              if not url:
+                  sys.exit('CF returned no downloadUrl for the server pack')
+              print('CF server pack:', f.get('fileName'))
+              download(url, {}, 'serverpack.zip')
+              got = True
+
+          if not got:
+              # No CF key: TFG's own GitHub releases carry the server files.
+              H = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                   'Accept': 'application/vnd.github+json',
+                   'X-GitHub-Api-Version': '2022-11-28'}
+              rel_api = ('https://api.github.com/repos/TerraFirmaGreg-Team/'
+                         'Modpack-Modern/releases?per_page=15')
+              rels = get_json(rel_api, H)
+              if vmatch:
+                  rels = [r for r in rels if re.search(
+                      vmatch, (r.get('tag_name', '') + ' ' + (r.get('name') or '')))]
+              rels = [r for r in rels if not r.get('draft')]
+              if not rels:
+                  sys.exit('no GitHub release matches %r' % vmatch)
+              rel = next((r for r in rels if not r.get('prerelease')), rels[0])
+              version_label = rel.get('tag_name') or rel.get('name')
+              names = [a['name'] for a in rel.get('assets', [])]
+              print('release:', version_label, '| assets:', ', '.join(names) or 'NONE')
+              asset = next((a for a in rel.get('assets', [])
+                            if re.search(r'(?i)server', a['name'])
+                            and a['name'].lower().endswith('.zip')), None)
+              if not asset:
+                  sys.exit('no *server*.zip asset on release %s - assets were: %s. '
+                           'Add a CURSEFORGE_API_KEY repo secret (free at '
+                           'console.curseforge.com) and rerun to use the CF API.'
+                           % (version_label, ', '.join(names)))
+              download(asset['browser_download_url'],
+                       {'Accept': 'application/octet-stream'}, 'serverpack.zip')
+
+          print('pack version:', version_label)
+          print('downloaded', os.path.getsize('serverpack.zip') // (1 << 20), 'MB')
+
+          with zipfile.ZipFile('serverpack.zip') as z:
+              z.extractall('unpack')
+          root = 'unpack'
+          kids = os.listdir(root)
+          if len(kids) == 1 and os.path.isdir(os.path.join(root, kids[0])):
+              root = os.path.join(root, kids[0])   # single wrapper dir
+
+          # 3. stage everything the host needs; skip what G-Portal manages
+          # (loader install, launch scripts) and the heavyweight loader files
+          SKIP_DIRS = {'libraries'}
+          def skip(fn):
+              l = fn.lower()
+              return (l.endswith(('.bat', '.sh', '.ps1'))
+                      or 'installer' in l
+                      or re.match(r'(forge|neoforge)-[\d.]', l)
+                      or l.startswith('minecraft_server')
+                      or l in ('user_jvm_args.txt',))
+          stage = os.path.abspath('stage'); os.makedirs(stage, exist_ok=True)
+          n = 0
+          for dirpath, dirnames, fns in os.walk(root):
+              rel = os.path.relpath(dirpath, root)
+              if rel.split(os.sep)[0] in SKIP_DIRS:
+                  dirnames[:] = []
+                  continue
+              for fn in fns:
+                  if rel == '.' and skip(fn):
+                      print('skipping:', fn); continue
+                  dst = os.path.join(stage, rel, fn) if rel != '.' else os.path.join(stage, fn)
+                  os.makedirs(os.path.dirname(dst), exist_ok=True)
+                  shutil.copyfile(os.path.join(dirpath, fn), dst)
+                  n += 1
+          print('staged', n, 'files')
+
+          # 4. what Forge does the pack want? (from jar names / run args)
+          forge = set()
+          for dirpath, _, fns in os.walk(root):
+              for fn in fns:
+                  m = re.search(r'(?:neo)?forge-(1\.\d+\.\d+-)?([\d.]+)', fn.lower())
+                  if m and ('forge' in fn.lower()):
+                      forge.add(fn)
+          sp = os.path.join(stage, 'server.properties')
+          level = ''
+          if os.path.isfile(sp):
+              for line in open(sp, encoding='utf-8', errors='replace'):
+                  if line.startswith('level-type'):
+                      level = line.strip()
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as s:
+              s.write('## TFG server payload built\n'
+                      '- Pack version: **%s** (players install this exact version '
+                      'from the CurseForge app)\n'
+                      '- Loader hints found in the server pack: `%s`\n'
+                      '- %s\n' % (version_label,
+                                  ', '.join(sorted(forge)) or 'none - check pack page',
+                                  level or 'no level-type override in server.properties'))
+          EOF
+          du -sh stage
+
+      - name: Wipe old pack + world over FTP
+        if: ${{ inputs.wipe_old != 'false' }}
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<'EOF' || true
+          set ftp:ssl-allow yes
+          rm -rf mods config kubejs defaultconfigs scripts openloader tacz
+          rm -rf resourcepacks datapacks patchouli_books schematics
+          rm -rf world world_nether world_the_end
+          rm -f .ftp-deploy-sync-state.json
+          ls
+          bye
+          EOF
+
+      # G-Portal's FTP lacks NLST (mirror aborts on it even with MLSD forced),
+      # drops long sessions, and rejects SITE CHMOD - so upload with NO remote
+      # listings at all: generated scripts of mkdir -pf + put -c (STOR/MKD/
+      # SIZE only), chunked so a dropped session costs one chunk, each chunk
+      # retried, and put -c resumes partial files on retry.
+      - name: FTP upload TFG payload (listing-free, chunked)
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          which lftp >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq lftp; }
+          rm -f stage/user_jvm_args.txt
+          python3 - <<'EOF'
+          import os
+          stage = 'stage'
+          chunks, cur, cur_bytes, dirs_done = [], [], 0, set()
+          LIMIT = 120 * 1024 * 1024
+          for dirpath, dirnames, files in os.walk(stage):
+              dirnames.sort()
+              for fn in sorted(files):
+                  full = os.path.join(dirpath, fn)
+                  rel = os.path.relpath(full, stage).replace(os.sep, '/')
+                  size = os.path.getsize(full)
+                  if cur and cur_bytes + size > LIMIT:
+                      chunks.append(cur); cur, cur_bytes = [], 0
+                  cur.append((full, rel, size)); cur_bytes += size
+          if cur: chunks.append(cur)
+          os.makedirs('chunks', exist_ok=True)
+          for i, chunk in enumerate(chunks):
+              with open('chunks/%04d.lftp' % i, 'w') as f:
+                  f.write('set ftp:ssl-allow yes\nset ftp:use-site-chmod no\n'
+                          'set net:max-retries 6\nset net:reconnect-interval-base 5\n'
+                          'set net:timeout 40\n')
+                  for full, rel, size in chunk:
+                      d = os.path.dirname(rel)
+                      if d and d not in dirs_done:
+                          parts = d.split('/')
+                          for k in range(1, len(parts) + 1):
+                              p = '/'.join(parts[:k])
+                              if p not in dirs_done:
+                                  f.write('mkdir -pf "%s"\n' % p)
+                                  dirs_done.add(p)
+                      f.write('put -c "%s" -o "%s"\n' % (full, rel))
+          total = sum(len(c) for c in chunks)
+          print('generated %d chunks, %d files' % (len(chunks), total))
+          EOF
+          fail=0
+          for f in chunks/*.lftp; do
+            ok=""
+            for try in 1 2 3; do
+              if lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" < "$f"; then
+                ok=1; echo "chunk $f done (try $try)"; break
+              fi
+              echo "chunk $f failed try $try, retrying"; sleep 10
+            done
+            [ -z "$ok" ] && { echo "chunk $f FAILED after 3 tries"; fail=1; }
+          done
+          exit $fail

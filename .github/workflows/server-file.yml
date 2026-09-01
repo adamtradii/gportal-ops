@@ -1,0 +1,99 @@
+# General server-file toolbox over FTP: read, append to, replace, or delete a
+# single file on the G-Portal server without a redeploy. Claude dispatches
+# this with inputs - config tweaks never need another PR after this lands.
+#
+#   action=get     print the file in the job log (diagnostics)
+#   action=append  add `content` as new line(s) at the end - idempotent, each
+#                  line is skipped if already present verbatim
+#   action=put     replace/create the file with exactly `content`
+#   action=delete  remove the file
+#
+# The server should be STOPPED for append/put/delete so it can't overwrite
+# the file on shutdown. `path` is relative to the server root, forward
+# slashes, no leading slash (e.g. config/modernfix-mixins.properties).
+name: Server file toolbox
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: get / append / put / delete
+        required: true
+        default: "get"
+      path:
+        description: file path relative to the server root
+        required: true
+      content:
+        description: line(s) for append/put; use \n for newlines
+        required: false
+        default: ""
+
+jobs:
+  file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run FTP file action
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+          ACTION: ${{ inputs.action }}
+          FPATH: ${{ inputs.path }}
+          CONTENT: ${{ inputs.content }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          case "$FPATH" in
+            /*|*..*) echo "refusing path: $FPATH"; exit 1;;
+          esac
+          ftp() {
+            lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<EOF
+          set ftp:ssl-allow yes
+          set ftp:use-site-chmod no
+          set ftp:use-mlsd true
+          set net:max-retries 8
+          set net:reconnect-interval-base 5
+          set net:timeout 40
+          $1
+          bye
+          EOF
+          }
+          case "$ACTION" in
+            get)
+              ftp "get \"$FPATH\" -o local.file"
+              echo "================= $FPATH ================="
+              cat local.file
+              ;;
+            append)
+              ftp "get \"$FPATH\" -o local.file" || true
+              touch local.file
+              # ensure trailing newline before appending
+              [ -s local.file ] && [ -n "$(tail -c1 local.file)" ] && echo >> local.file
+              added=0
+              printf '%b\n' "$CONTENT" | while IFS= read -r line; do
+                [ -z "$line" ] && continue
+                if ! grep -qxF "$line" local.file; then
+                  echo "$line" >> local.file
+                  echo "appended: $line"
+                else
+                  echo "already present: $line"
+                fi
+              done
+              ftp "put local.file -o \"$FPATH\""
+              echo "saved $FPATH"
+              ftp "get \"$FPATH\" -o verify.file"
+              echo "================= $FPATH (after) ================="
+              tail -n 20 verify.file
+              ;;
+            put)
+              printf '%b\n' "$CONTENT" > local.file
+              ftp "put local.file -o \"$FPATH\""
+              echo "wrote $FPATH:"
+              cat local.file
+              ;;
+            delete)
+              ftp "rm \"$FPATH\""
+              echo "deleted $FPATH"
+              ;;
+            *)
+              echo "unknown action: $ACTION"; exit 1;;
+          esac

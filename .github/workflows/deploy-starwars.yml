@@ -1,0 +1,40 @@
+# Deploy the server kit to G-Portal over FTP.
+#
+# One-time setup (repo Settings -> Secrets and variables -> Actions -> New repository secret):
+#   GPORTAL_FTP_SERVER    e.g. ftp.g-portal.com or the IP from the panel's FTP tab
+#   GPORTAL_FTP_USERNAME  from the panel's FTP tab
+#   GPORTAL_FTP_PASSWORD  from the panel's FTP tab
+#   GPORTAL_FTP_PORT      from the panel's FTP tab (G-Portal uses a non-standard port)
+#   GPORTAL_FTP_DIR       optional - the server's root path if not "/" (check in FileZilla once)
+#
+# Usage: STOP the server in the G-Portal panel, run this workflow from the
+# Actions tab (Run workflow), start the server again. The first run uploads
+# everything (~290 MB); later runs are incremental - only changed files move.
+#
+# Deliberately NOT uploaded: server.properties and user_jvm_args.txt (the
+# panel manages those) and the self-hosting install scripts.
+name: Deploy server to G-Portal
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: FTP sync server payload
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.GPORTAL_FTP_SERVER }}
+          username: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          password: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+          port: ${{ secrets.GPORTAL_FTP_PORT || 21 }}
+          local-dir: server/
+          server-dir: ${{ secrets.GPORTAL_FTP_DIR || '/' }}
+          timeout: 600000
+          exclude: |
+            server.properties
+            user_jvm_args.txt
+            install_and_start.bat
+            install_and_start.sh

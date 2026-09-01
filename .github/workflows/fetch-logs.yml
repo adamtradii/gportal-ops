@@ -1,0 +1,41 @@
+# Pull the server's logs from G-Portal over FTP and print them in the job
+# output, so crash triage can happen without touching the panel.
+# Uses the same secrets as the deploy workflow. Run from the Actions tab.
+name: Fetch server logs
+on:
+  workflow_dispatch:
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Download logs over FTP
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          mkdir -p /tmp/srv
+          lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<'EOF' || true
+          set ftp:ssl-allow yes
+          get logs/latest.log -o /tmp/srv/latest.log
+          get logs/debug.log -o /tmp/srv/debug.log
+          mirror crash-reports /tmp/srv/crash
+          ls
+          bye
+          EOF
+
+      - name: Show latest.log tail
+        run: |
+          echo '================= latest.log (last 400 lines) ================='
+          tail -n 400 /tmp/srv/latest.log 2>/dev/null || echo '(latest.log not found - check the ls output above for the real paths)'
+
+      - name: Show newest crash report
+        run: |
+          echo '================= newest crash report ================='
+          new=$(ls -t /tmp/srv/crash/*.txt 2>/dev/null | head -1)
+          if [ -n "$new" ]; then head -n 250 "$new"; else echo '(no crash reports found)'; fi
