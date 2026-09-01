@@ -1,0 +1,244 @@
+# Keep the G-Portal server on the latest TerraFirmaGreg release.
+#
+# Runs daily and on demand. Reads the version marker (.tfg-version) off the
+# server; if it matches the newest official release, exits without touching
+# anything. On a new release (or force=true) it replaces ONLY the pack-owned
+# folders and re-applies the known server fixes. The world and
+# server.properties are NEVER touched unless wipe_world=true is passed by a
+# human - some TFG updates require a fresh world; the updater never decides
+# that on its own.
+#
+# G-Portal FTP quirks this is built around (all observed): no NLST (so no
+# lftp mirror - uploads are generated mkdir/put scripts), no SITE CHMOD,
+# drops long sessions (chunked, retried, put -c resumes partial files).
+#
+# Note: the update runs over FTP while the server may be online; files land
+# consistently by the end of the run and take effect on the next restart.
+# If the server restarts mid-update it may boot a mixed state once - the
+# following restart (after the run finishes) is clean.
+name: TFG auto-update
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: redeploy even if the version marker matches ("true")
+        required: false
+        default: "false"
+      wipe_world:
+        description: ALSO delete the world - only when a TFG update requires it ("true")
+        required: false
+        default: "false"
+      version_match:
+        description: regex to pin a specific release (empty = newest)
+        required: false
+        default: ""
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check current vs latest
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+          VMATCH: ${{ inputs.version_match }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<'EOF' || true
+          set ftp:ssl-allow yes
+          set net:max-retries 5
+          set net:timeout 30
+          get .tfg-version -o current.txt
+          bye
+          EOF
+          CURRENT=$(cat current.txt 2>/dev/null || echo "none")
+          python3 - <<'EOF'
+          import json, os, re, sys, urllib.request
+          H = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+               'Accept': 'application/vnd.github+json',
+               'User-Agent': 'tfg-auto-update'}
+          rels = json.load(urllib.request.urlopen(urllib.request.Request(
+              'https://api.github.com/repos/TerraFirmaGreg-Team/Modpack-Modern/releases?per_page=15', headers=H)))
+          vmatch = os.environ.get('VMATCH', '')
+          rels = [r for r in rels if not r.get('draft') and not r.get('prerelease')]
+          if vmatch:
+              rels = [r for r in rels if re.search(vmatch, r.get('tag_name', ''))]
+          if not rels:
+              sys.exit('no matching TFG release found')
+          r = rels[0]
+          asset = next((a for a in r['assets']
+                        if re.search(r'(?i)server', a['name']) and a['name'].endswith('.zip')), None)
+          if not asset:
+              sys.exit('release %s has no server zip; assets: %s'
+                       % (r['tag_name'], ', '.join(a['name'] for a in r['assets'])))
+          open('latest.txt', 'w').write(r['tag_name'])
+          open('asset_url.txt', 'w').write(asset['browser_download_url'])
+          open('release_url.txt', 'w').write(r['html_url'])
+          print('latest release:', r['tag_name'], asset['name'])
+          EOF
+          LATEST=$(cat latest.txt)
+          echo "current=$CURRENT latest=$LATEST force=${FORCE:-false}"
+          if [ "$CURRENT" = "$LATEST" ] && [ "${FORCE:-false}" != "true" ]; then
+            echo "update=no" >> "$GITHUB_OUTPUT"
+            echo "## TFG up to date: $CURRENT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "update=yes" >> "$GITHUB_OUTPUT"
+            echo "LATEST=$LATEST" >> "$GITHUB_ENV"
+            echo "ASSET_URL=$(cat asset_url.txt)" >> "$GITHUB_ENV"
+            echo "RELEASE_URL=$(cat release_url.txt)" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build server payload
+        if: steps.check.outputs.update == 'yes'
+        run: |
+          python3 - <<'EOF'
+          import os, re, shutil, zipfile, urllib.request
+          req = urllib.request.Request(os.environ['ASSET_URL'],
+                                       headers={'User-Agent': 'tfg-auto-update',
+                                                'Accept': 'application/octet-stream'})
+          with urllib.request.urlopen(req) as r, open('serverpack.zip', 'wb') as f:
+              shutil.copyfileobj(r, f)
+          print('downloaded', os.path.getsize('serverpack.zip') // (1 << 20), 'MB')
+          with zipfile.ZipFile('serverpack.zip') as z:
+              z.extractall('unpack')
+          root = 'unpack'
+          kids = os.listdir(root)
+          if len(kids) == 1 and os.path.isdir(os.path.join(root, kids[0])):
+              root = os.path.join(root, kids[0])
+          SKIP_DIRS = {'libraries'}
+          def skip(fn):
+              l = fn.lower()
+              return (l.endswith(('.bat', '.sh', '.ps1')) or 'installer' in l
+                      or re.match(r'(?:neo)?forge-[\d.]', l)
+                      or l.startswith('minecraft_server')
+                      or l in ('user_jvm_args.txt', 'server.properties'))
+          stage = os.path.abspath('stage'); os.makedirs(stage, exist_ok=True)
+          n = 0
+          for dirpath, dirnames, fns in os.walk(root):
+              rel = os.path.relpath(dirpath, root)
+              if rel.split(os.sep)[0] in SKIP_DIRS:
+                  dirnames[:] = []; continue
+              for fn in fns:
+                  if rel == '.' and skip(fn):
+                      continue
+                  dst = os.path.join(stage, rel, fn) if rel != '.' else os.path.join(stage, fn)
+                  os.makedirs(os.path.dirname(dst), exist_ok=True)
+                  shutil.copyfile(os.path.join(dirpath, fn), dst)
+                  n += 1
+          open(os.path.join(stage, '.tfg-version'), 'w').write(os.environ['LATEST'])
+          print('staged', n, 'files for', os.environ['LATEST'])
+          EOF
+
+      - name: Remove old pack folders (world untouched)
+        if: steps.check.outputs.update == 'yes'
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+          WIPE_WORLD: ${{ inputs.wipe_world }}
+        run: |
+          {
+            echo 'set ftp:ssl-allow yes'
+            echo 'set net:max-retries 5'
+            echo 'set net:timeout 40'
+            echo 'rm -rf mods config kubejs defaultconfigs scripts tacz patchouli_books'
+            if [ "${WIPE_WORLD:-false}" = "true" ]; then
+              echo 'rm -rf world world_nether world_the_end'
+            fi
+            echo 'bye'
+          } > wipe.lftp
+          lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" < wipe.lftp || true
+
+      - name: Upload (listing-free, chunked)
+        if: steps.check.outputs.update == 'yes'
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          python3 - <<'EOF'
+          import os
+          stage = 'stage'
+          chunks, cur, cur_bytes, dirs_done = [], [], 0, set()
+          LIMIT = 120 * 1024 * 1024
+          for dirpath, dirnames, files in os.walk(stage):
+              dirnames.sort()
+              for fn in sorted(files):
+                  full = os.path.join(dirpath, fn)
+                  rel = os.path.relpath(full, stage).replace(os.sep, '/')
+                  size = os.path.getsize(full)
+                  if cur and cur_bytes + size > LIMIT:
+                      chunks.append(cur); cur, cur_bytes = [], 0
+                  cur.append((full, rel)); cur_bytes += size
+          if cur: chunks.append(cur)
+          os.makedirs('chunks', exist_ok=True)
+          for i, chunk in enumerate(chunks):
+              with open('chunks/%04d.lftp' % i, 'w') as f:
+                  f.write('set ftp:ssl-allow yes\nset ftp:use-site-chmod no\n'
+                          'set net:max-retries 6\nset net:reconnect-interval-base 5\n'
+                          'set net:timeout 40\n')
+                  for full, rel in chunk:
+                      d = os.path.dirname(rel)
+                      if d and d not in dirs_done:
+                          parts = d.split('/')
+                          for k in range(1, len(parts) + 1):
+                              p = '/'.join(parts[:k])
+                              if p not in dirs_done:
+                                  f.write('mkdir -pf "%s"\n' % p)
+                                  dirs_done.add(p)
+                      f.write('put -c "%s" -o "%s"\n' % (full, rel))
+          print('generated %d chunks, %d files'
+                % (len(chunks), sum(len(c) for c in chunks)))
+          EOF
+          fail=0
+          for f in chunks/*.lftp; do
+            ok=""
+            for try in 1 2 3; do
+              if lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" < "$f"; then
+                ok=1; echo "chunk $f done (try $try)"; break
+              fi
+              echo "chunk $f failed try $try, retrying"; sleep 10
+            done
+            [ -z "$ok" ] && { echo "chunk $f FAILED after 3 tries"; fail=1; }
+          done
+          exit $fail
+
+      - name: Re-apply server fixes
+        if: steps.check.outputs.update == 'yes'
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          patch_append() {  # file line - idempotent append over FTP
+            lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<EOF || true
+          set ftp:ssl-allow yes
+          get "$1" -o local.file
+          bye
+          EOF
+            touch local.file
+            [ -s local.file ] && [ -n "$(tail -c1 local.file)" ] && echo >> local.file
+            grep -qxF "$2" local.file || echo "$2" >> local.file
+            lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<EOF
+          set ftp:ssl-allow yes
+          put local.file -o "$1"
+          bye
+          EOF
+            rm -f local.file
+          }
+          patch_append config/modernfix-mixins.properties "mixin.perf.clear_mixin_classinfo=false"
+          patch_append server.properties "enable-query=true"
+          patch_append server.properties "enable-rcon=true"
+          echo "## TFG updated to $LATEST" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Players must install the matching client from $RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- World untouched (wipe_world was not set). Restart the server in G-Portal to load the update." >> "$GITHUB_STEP_SUMMARY"
