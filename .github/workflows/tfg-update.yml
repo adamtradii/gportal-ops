@@ -228,7 +228,12 @@ jobs:
           EOF
             touch local.file
             [ -s local.file ] && [ -n "$(tail -c1 local.file)" ] && echo >> local.file
-            grep -qxF "$2" local.file || echo "$2" >> local.file
+            key="${2%%=*}"
+            if ! grep -qxF "$2" local.file; then
+              # replace an existing key=... line instead of duplicating the key
+              grep -v "^${key}=" local.file > local.tmp; mv local.tmp local.file
+              echo "$2" >> local.file
+            fi
             lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<EOF
           set ftp:ssl-allow yes
           put local.file -o "$1"
@@ -237,7 +242,13 @@ jobs:
             rm -f local.file
           }
           patch_append config/modernfix-mixins.properties "mixin.perf.clear_mixin_classinfo=false"
-          patch_append server.properties "enable-query=true"
+          # Simple Voice Chat must NOT use its default UDP 24454: on the shared
+          # G-Portal host that port is taken, the bind fails, and the mod shuts
+          # the whole server down ~1s after load. -1 = share the game port,
+          # which G-Portal forwards; query must then be OFF (it would bind the
+          # same UDP port - the mod's own config warns this crashes the server).
+          patch_append config/voicechat/voicechat-server.properties "port=-1"
+          patch_append server.properties "enable-query=false"
           patch_append server.properties "enable-rcon=true"
           # TFC worldgen: must be set before the first boot creates the world.
           # Appended last so it wins over any vanilla level-type above it.

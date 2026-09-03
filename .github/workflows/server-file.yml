@@ -3,8 +3,8 @@
 # this with inputs - config tweaks never need another PR after this lands.
 #
 #   action=get     print the file in the job log (diagnostics)
-#   action=append  add `content` as new line(s) at the end - idempotent, each
-#                  line is skipped if already present verbatim
+#   action=append  set `content` line(s): a key=value line replaces an existing
+#                  line with that key, anything else is appended once (idempotent)
 #   action=put     replace/create the file with exactly `content`
 #   action=delete  remove the file
 #
@@ -69,13 +69,22 @@ jobs:
               # ensure trailing newline before appending
               [ -s local.file ] && [ -n "$(tail -c1 local.file)" ] && echo >> local.file
               added=0
+              # key=value lines REPLACE an existing line with the same key
+              # (properties files must not carry duplicate keys); other
+              # lines are appended once.
               printf '%b\n' "$CONTENT" | while IFS= read -r line; do
                 [ -z "$line" ] && continue
-                if ! grep -qxF "$line" local.file; then
+                if grep -qxF "$line" local.file; then
+                  echo "already present: $line"; continue
+                fi
+                key="${line%%=*}"
+                if [ "$key" != "$line" ] && grep -q "^${key}=" local.file; then
+                  grep -v "^${key}=" local.file > local.tmp; mv local.tmp local.file
+                  echo "$line" >> local.file
+                  echo "replaced: $key -> $line"
+                else
                   echo "$line" >> local.file
                   echo "appended: $line"
-                else
-                  echo "already present: $line"
                 fi
               done
               ftp "put local.file -o \"$FPATH\""
