@@ -16,3 +16,14 @@ G-Portal FTP quirks, learned the hard way: no NLST (never use lftp mirror),
 no SITE CHMOD (skip permissions), drops long sessions (chunked uploads,
 retries, put -c resume). The Star Wars pack restore lives in the
 star-wars-galaxy-rpg repo (deploy-server.yml there).
+
+## Known server fixes the updater re-applies
+- **Simple Voice Chat port**: the default UDP 24454 is taken on the shared
+  G-Portal host. The bind fails and the mod shuts the whole server down about
+  1.5s after load-complete (looks like a clean stop, no crash report). Fix:
+  `port=-1` in `config/voicechat/voicechat-server.properties` (share the game
+  port) plus `enable-query=false` in `server.properties`, because query would
+  bind that same UDP port.
+- `mixin.perf.clear_mixin_classinfo=false` (ModernFix) - avoids the Greate
+  mixin InjectionError during class-info clearing.
+- `level-type=tfc:overworld`, `enable-rcon=true`, `eula=true`.
