@@ -38,6 +38,12 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      # Files that are not the pack's but live inside the folders the update wipes: tfgworkers' deploy-gportal puts the
+      # crew mod + its config there. Saved before the wipe, put back after the upload, read back and compared.
+      # Exact paths only (G-Portal FTP cannot list). A server-side .keep-files (one path per line) adds to this list;
+      # deploy-gportal writes it with the jar's current name, so a new mod version is covered without editing this.
+      KEEP_FILES: "mods/tfgcrew-1.20.1-0.2.0.jar config/tfgcrew-common.toml"
     steps:
       - name: Check current vs latest
         id: check
@@ -132,9 +138,40 @@ jobs:
                   os.makedirs(os.path.dirname(dst), exist_ok=True)
                   shutil.copyfile(os.path.join(dirpath, fn), dst)
                   n += 1
-          open(os.path.join(stage, '.tfg-version'), 'w').write(os.environ['LATEST'])
+          open('tfg-version.txt', 'w').write(os.environ['LATEST'])   # uploaded last with a plain put: see 'Write version marker'
           print('staged', n, 'files for', os.environ['LATEST'])
           EOF
+
+      - name: Save files that are not the pack's (crew mod, its config)
+        if: steps.check.outputs.update == 'yes'
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          mkdir -p keep
+          lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<'EOF' || true
+          set ftp:ssl-allow yes
+          set net:max-retries 5
+          set net:timeout 40
+          get .keep-files -o keep/.list
+          bye
+          EOF
+          extra=$(tr -d '\r' < keep/.list 2>/dev/null | grep -vE '^[[:space:]]*(#|$)' | grep -vE '^/|\.\.' || true)
+          : > keep/.saved
+          for f in $(printf '%s\n' $KEEP_FILES $extra | sort -u); do
+            mkdir -p "keep/$(dirname "$f")"
+            lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<EOF || true
+          set ftp:ssl-allow yes
+          set net:max-retries 5
+          set net:timeout 40
+          get "$f" -o "keep/$f"
+          bye
+          EOF
+            if [ -s "keep/$f" ]; then echo "saved $f ($(stat -c %s "keep/$f") bytes)"; echo "$f" >> keep/.saved
+            else rm -f "keep/$f"; echo "::warning::$f is not on the server, nothing to keep"; fi
+          done
 
       - name: Remove old pack folders (world untouched)
         if: steps.check.outputs.update == 'yes'
@@ -256,6 +293,60 @@ jobs:
           # A fresh G-Portal reinstall ships no eula.txt; without it the host
           # never launches Java (no logs/, instant "Failed").
           patch_append eula.txt "eula=true"
+
+      - name: Put back the saved files
+        if: steps.check.outputs.update == 'yes'
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          [ -s keep/.saved ] || { echo "nothing was saved"; exit 0; }
+          fail=0
+          while IFS= read -r f; do
+            # never 'put -c': it RESUMES onto a same-named file. Delete by exact name, plain put, read back, compare.
+            rm -f back.file
+            lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<EOF || true
+          set ftp:ssl-allow yes
+          set ftp:use-site-chmod no
+          set net:max-retries 6
+          set net:timeout 40
+          mkdir -pf "$(dirname "$f")"
+          rm -f "$f"
+          put "keep/$f" -o "$f"
+          get "$f" -o back.file
+          bye
+          EOF
+            if cmp -s "keep/$f" back.file; then echo "PASS restored $f"
+            else echo "::error::$f did not come back intact - re-run tfgworkers' deploy-gportal before starting the server"; fail=1; fi
+          done < keep/.saved
+          exit $fail
+
+      - name: Write version marker (verified)
+        if: steps.check.outputs.update == 'yes'
+        env:
+          HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
+          PORT: ${{ secrets.GPORTAL_FTP_PORT }}
+          FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
+          FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
+        run: |
+          # Until 2026-10-12 the marker went up with 'put -c' inside the chunks. The old file ('0.13.9' + newline) had the
+          # same size as the new one ('0.13.10'), so the resume sent nothing, the marker never changed, and every daily
+          # run re-installed 0.13.10 - wiping mods/ and config/ (the crew mod with them) each time.
+          rm -f back.txt
+          lftp -p "${PORT:-21}" -u "$FUSER,$FPASS" "$HOST" <<'EOF' || true
+          set ftp:ssl-allow yes
+          set ftp:use-site-chmod no
+          set net:max-retries 6
+          set net:timeout 40
+          rm -f .tfg-version
+          put tfg-version.txt -o .tfg-version
+          get .tfg-version -o back.txt
+          bye
+          EOF
+          echo "marker on the server: '$(cat back.txt 2>/dev/null)' wanted '$LATEST'"
+          [ "$(cat back.txt 2>/dev/null)" = "$LATEST" ] || { echo "::error::the version marker did not write; the next run would reinstall again"; exit 1; }
           echo "## TFG updated to $LATEST" >> "$GITHUB_STEP_SUMMARY"
           echo "- Players must install the matching client from $RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- World untouched (wipe_world was not set). Restart the server in G-Portal to load the update." >> "$GITHUB_STEP_SUMMARY"

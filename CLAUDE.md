@@ -61,6 +61,13 @@ CurseForge, Modrinth or modrepo.de directly - GitHub Actions is the only plane)
   MCP tool; parse `logs_content` with python and grep for
   `ERROR|Exception|Stopping server|Done \(`.
 
+## Crew mod survives updates (2026-10-13)
+tfgworkers' crew mod lives in `mods/` and `config/`, which an update wipes. The updater saves every path in
+`KEEP_FILES` (workflow env) plus the server's `.keep-files` (written by tfgworkers' deploy-gportal) before the wipe and
+puts them back after, read back and compared. Until 2026-10-12 the version marker went up with `put -c`: the old
+file ("0.13.9" + newline) was the same size as "0.13.10", the resume sent nothing, the marker never changed, and
+EVERY daily run reinstalled 0.13.10 - deleting the crew mod each time. The marker is now a plain put, verified.
+
 ## Fixes the updater re-applies (all verified against primary sources)
 | file | line | why |
 |---|---|---|
