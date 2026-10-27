@@ -1,0 +1,5 @@
+# Daily TFG auto-update switch. FROZEN by default (2026-10-27).
+# "on" lets the 09:17 UTC schedule run; anything else (or this file missing) makes the schedule skip.
+# Manual "Run workflow" always works. Reason: tfgworkers pins its crew mod to a pack version, and two unattended
+# runs half-installed 0.13.16/0.13.17 and lost the crew mod. Unfreeze only when the crew mod supports the newest pack.
+off

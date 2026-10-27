@@ -22,7 +22,38 @@ merge a PR for an ops change - this repo is pushed to `main` directly.
 4. Never put the FTP password anywhere but repository secrets. Never publish
    the Star Wars repo (it carries third-party jars).
 
-## Current state (2026-09-03)
+## Current state (2026-10-27): INCIDENT + updater frozen
+- **Incident.** Unattended `tfg-update.yml` runs 40356210574 (10-26, ->0.13.16) and 40530320802 (10-27 15:22-15:57 UTC,
+  0.13.15 -> 0.13.17) wiped `mods config ...`, then failed the upload step, so "Re-apply server fixes", "Put back the
+  saved files" (crew mod + `config/tfgcrew-common.toml`) and the version marker were SKIPPED. Marker still says 0.13.15
+  while the server holds a (nearly complete) 0.13.17 with no crew mod, no voicechat/modernfix/server.properties fixes.
+- **Root cause (from the job logs).** `put -c` onto a remote file that already exists in full ends in
+  `put: stage/x: file size increased during transfer` (xaeroworldmap/yet_another_config_lib failed on tries 2-3 only,
+  after try 1 had uploaded them complete; tacz/* and five top-level files failed on try 1 because they were already
+  there: tacz survived the wipe in both runs, README.md, server-icon.png, server_starter.conf, forge-auto-install.txt and
+  DiscordIntegration-Data/Messages.toml are never wiped at all). **lftp's exit status is the status of the LAST command
+  only**: the 10-27 chunk 0000 (five such errors, last put fine) reported "done (try 1)", chunk 0005 failed only because
+  its last file (tacz/ulv_guns.zip) was one of them. So most of the pack did upload; the five top-level files were never
+  refreshed; and a resume onto a SMALLER stale file would have silently appended (corrupted) data. The wipe step
+  (`|| true`, no output) took 11 min and was never checked.
+- **Fix (v2 updater).** All FTP logic is `scripts/tfg_ftp.py` (tests: `python3 scripts/test_tfg_ftp.py`, real lftp
+  against a temp dir with the incident's failures injected). Upload = `rm -f` exact name + PLAIN `put` (never `-c`);
+  failures read from lftp's own `put:` lines, retried per file x3, a failed chunk no longer stops the run; read-back
+  verify of a sample. Wipe is verified (listing, else get-probes) and retried x3, leftovers are a warning. Fixes, crew-mod
+  put-back run after ANY upload outcome (`if: always()`); the version marker is written only if upload AND fixes
+  succeeded. A transient FTP error is never read as "file absent" (version marker, keep files, server.properties).
+  A keep-file that is not on the server is only a warning. `concurrency` group stops two runs overlapping.
+- **FROZEN.** The daily schedule skips unless `.github/TFG_AUTO_UPDATE` says `on` (default `off`): the crew mod is pinned
+  to a pack version (tfgworkers/CLAUDE.md). Manual "Run workflow" always works.
+- **Inputs.** `dry_run=true` (read-only rehearsal: prints the plan, changes nothing), `version_match` (plain version =
+  exact tag; TFG tags have no `v`: `0.13.17`; otherwise a regex), `force=true` (reinstall although the marker matches),
+  `wipe_world`.
+- **Owner decision 2026-10-27 16:25 PT: finish 0.13.17** (no rollback). Real run is dispatched by the lead after the
+  owner stops the server; tfgworkers' deploy-gportal then puts the crew mod back (it is not on the server).
+- Idea not built: upload to `*.new` folders and swap by rename (seconds of mixed state instead of ~40 min); needs a
+  rename probe on G-Portal FTP first.
+
+## Earlier state (2026-09-03)
 - Server: `us2092751.g-portal.game`, game port **26305** (TCP; UDP shared with
   voice chat), rcon 26295, 14 GB RAM, Java 17, Forge **1.20.1-47.4.13**
   (pinned by TFG's pakku-lock; do not move it).
@@ -45,14 +76,14 @@ merge a PR for an ops change - this repo is pushed to `main` directly.
 ## Workflows (dispatch from Actions tab, or via the GitHub MCP
 `actions_run_trigger` with ref=main; the cloud sandbox cannot reach FTP,
 CurseForge, Modrinth or modrepo.de directly - GitHub Actions is the only plane)
-- `tfg-update.yml` - daily 09:17 UTC + manual. Compares `.tfg-version` to the
+- `tfg-update.yml` - FROZEN daily 09:17 UTC schedule (see Current state) + manual. Compares `.tfg-version` to the
   newest non-prerelease release; on change (or `force=true`) deletes ONLY
   `mods config kubejs defaultconfigs scripts tacz patchouli_books`, uploads the
   new pack (listing-free chunked lftp), then re-applies every fix below.
   Never touches the world unless `wipe_world=true` is passed by a human.
   Skips the pack's `server.properties`, `user_jvm_args.txt`, installers,
   launch scripts and `libraries/` (G-Portal owns the runtime).
-  A full force reinstall takes ~25 min.
+  A full force reinstall takes ~25-45 min. FTP code: `scripts/tfg_ftp.py`.
 - `server-file.yml` - `get` / `append` / `put` / `delete` one file.
   `append` is a SET: a `key=value` line replaces an existing line with that
   key; other lines are appended once. Use `\n` in `content` for several lines.
