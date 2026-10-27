@@ -41,6 +41,7 @@ PRELUDE = ('set ftp:ssl-allow yes\nset ftp:use-site-chmod no\nset net:max-retrie
 ABSENT = re.compile(r'(?i)does not exist|no such file|not found')
 FATAL = re.compile(r'(?i)fatal error|login (failed|incorrect)|max-retries|connection refused|not connected')
 CHUNK_BYTES = 120 * 1024 * 1024
+CHUNK_FILES = 400          # also cap files per session: shorter sessions, cheaper retries (chunk 0 had 4051 files)
 FIXES = [  # (file, "key=value") - the same fixes the workflow has always re-applied, see CLAUDE.md
     ('config/modernfix-mixins.properties', 'mixin.perf.clear_mixin_classinfo=false'),
     # Simple Voice Chat must NOT use its default UDP 24454 (taken on the shared G-Portal host; the bind failure
@@ -321,7 +322,7 @@ def build_chunks():
             full = os.path.join(dp, fn)
             rel = os.path.relpath(full, 'stage').replace(os.sep, '/')
             size = os.path.getsize(full)
-            if cur and cur_bytes + size > CHUNK_BYTES:
+            if cur and (cur_bytes + size > CHUNK_BYTES or len(cur) >= CHUNK_FILES):
                 chunks.append(cur)
                 cur, cur_bytes = [], 0
             cur.append((full, rel, size))
