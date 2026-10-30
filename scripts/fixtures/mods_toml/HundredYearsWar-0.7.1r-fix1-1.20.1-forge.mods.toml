@@ -1,0 +1,27 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+#issueTrackerURL = ""
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "hundred_years_war"
+version = "0.7.1r-fix1-1.20.1-forge"
+displayName = "Hundred Years War"
+authors = "ydmsama"
+description = '''Hundred Years War Mod'''
+
+#logoFile = ""
+
+[[dependencies.hundred_years_war]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.hundred_years_war]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,)"
+ordering = "NONE"
+side = "BOTH"

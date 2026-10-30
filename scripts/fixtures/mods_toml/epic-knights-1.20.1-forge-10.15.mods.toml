@@ -1,0 +1,42 @@
+modLoader = "javafml"
+license = "All Rights Reserved"
+loaderVersion = "[47,)"
+displayURL = "https://www.curseforge.com/minecraft/mc-mods/epic-knights-armor-and-weapons"
+issueTrackerURL = "https://github.com/Magistu/Epic-Knights/issues"
+logoFile = "icon.png"
+
+[[mods]]
+modId = "magistuarmory"
+version = "10.15"
+displayName = "Epic-Knights: Shields, Armor and Weapons"
+authors = "Magistu"
+credits = "StaxiHD, Mino, Lexiolty, Jackiecrazy, CrazyBarkley, Ryuje, Witchkings, Cole3050, taizazanek, thyreo"
+description = "Adds medieval stuff to the game"
+
+[[dependencies."magistuarmory"]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."magistuarmory"]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20,1.20.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."magistuarmory"]]
+modId = "architectury"
+mandatory = true
+versionRange = "[9.0.8,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies."magistuarmory"]]
+modId = "cloth_config"
+mandatory = true
+versionRange = "[11.0.99,)"
+ordering = "AFTER"
+side = "BOTH"

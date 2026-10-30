@@ -1,0 +1,50 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "caravansconvoys"
+version = "1.0.14"
+displayName = "Caravans & Convoys"
+authors = "Barunn (NewtL)"
+description = '''
+Automatic overland trade for any world. Place a Caravan Dock next to a chest, post an offer (send 64 iron, want 10 diamonds), whitelist a partner, and a horse-drawn wagon hauls the goods across the map on its own. Goods never teleport: every trade rides a real wagon down a real, road-aware route, so caravans can be raided, stranded, or wrecked in transit. Wagons trot faster on player-made roads, and the route seeks roads out.
+
+Post Hundred Years War soldiers from the dock's guard slot and they escort your wagon, turning hostile on anyone but the owner who cracks open its cargo. Works standalone; integrates softly with trotting_wagons, Hundred Years War, and MineColonies when present.
+'''
+
+[[dependencies.caravansconvoys]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.caravansconvoys]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.21)"
+ordering = "NONE"
+side = "BOTH"
+
+# Soft integrations, all reflective so the mod runs without them.
+[[dependencies.caravansconvoys]]
+modId = "trotting_wagons"
+mandatory = false
+versionRange = "*"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.caravansconvoys]]
+modId = "hundred_years_war"
+mandatory = false
+versionRange = "*"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.caravansconvoys]]
+modId = "minecolonies"
+mandatory = false
+versionRange = "*"
+ordering = "AFTER"
+side = "BOTH"

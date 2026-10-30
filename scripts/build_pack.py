@@ -212,6 +212,31 @@ def fetch_mods(mods, cache):
 
 
 # ---------------------------------------------------------------- jars
+def ids_from_toml(text):
+    """modIds declared by the [[mods]] entries of a mods.toml text. Real files carry comments on the header and value
+    lines ("[[mods]] #mandatory", 'modId="x" #mandatory'), indentation, "modId = 'x'", dependency sections that also
+    have a modId (forge, minecraft, ...). A line scan finds the [[mods]] sections whatever the comments look like; a
+    proper TOML parse is added when the file parses, so neither can hide an id from the other."""
+    ids, section = set(), ''
+    for line in text.splitlines():
+        s = line.strip()
+        m = re.match(r'\[\[?\s*([^\]\s]+)\s*\]\]?', s)
+        if m:
+            section = m.group(1)
+        elif section == 'mods':
+            m = re.match(r'modId\s*=\s*["\']([^"\']+)["\']', s)
+            if m:
+                ids.add(m.group(1))
+    try:
+        import tomllib
+        for m in tomllib.loads(text).get('mods', []):
+            if isinstance(m, dict) and isinstance(m.get('modId'), str):
+                ids.add(m['modId'])
+    except Exception:  # noqa: BLE001 - a lenient scan already ran
+        pass
+    return ids
+
+
 def jar_mod_ids(path):
     """modId of every [[mods]] entry in META-INF/mods.toml (dependency sections are ignored). None = unreadable."""
     try:
@@ -222,16 +247,7 @@ def jar_mod_ids(path):
                 return set()
     except (zipfile.BadZipFile, OSError):
         return None
-    ids, section = set(), ''
-    for line in text.splitlines():
-        s = line.strip()
-        if s.startswith('['):
-            section = s.strip('[] \t')
-        elif section == 'mods':
-            m = re.match(r'modId\s*=\s*["\']([^"\']+)["\']', s)
-            if m:
-                ids.add(m.group(1))
-    return ids
+    return ids_from_toml(text)
 
 
 def _nested_jars(z, depth=0):
@@ -260,15 +276,7 @@ def provided_ids(path):
                     t = inner.read('META-INF/mods.toml').decode('utf-8', 'replace')
                 except KeyError:
                     continue
-                sec = ''
-                for line in t.splitlines():
-                    st = line.strip()
-                    if st.startswith('['):
-                        sec = st.strip('[] \t')
-                    elif sec == 'mods':
-                        m = re.match(r'modId\s*=\s*["\']([^"\']+)["\']', st)
-                        if m:
-                            ids.add(m.group(1))
+                ids |= ids_from_toml(t)
     except (zipfile.BadZipFile, OSError):
         pass
     return ids
