@@ -51,10 +51,27 @@ Hardrock Tools & Materials (htm 1.0.8, needs Lychee) + Lychee + Kiwi, Animals Tr
 TFC Ore Washing, Farmers TFC + Farmer's Delight, Neruina, spark.
 PENDING: Survivor's Abilities + Survivor's Butchery (mixins hit TFC TFCFoodData/NutritionData/livestock classes that TFG-Core also patches - compare).
 
+## Status after push 1 (additions_version 1 = core gameplay set, 15 mods, verified by scripts/verify_additions.py: real download, size, sha1, Forge mods.toml, MC 1.20.1, Forge 47.4.13, deps provided)
+Core set in the lock: MineColonies 1.1.1301, Structurize 1.0.818, BlockUI 1.0.193, War 'N Taxes 5.0.9, War 'n Nobility 1.1.4, Caravans & Convoys 1.0.14,
+Hundred Years Warfare 0.7.1r-fix1, SDM Shop 7.2.2 / Economy 2.2.0 / UI Lib 1.8.3, Epic Knights 10.15 + Addon 2.6, Small Ships 2.0.2, Trotting Wagons 1.0.4, Butchercraft 2.4.1.
+Version 2 will add (SPEC rows with group "more" in scripts/build_crownfall_lock.py): MineColonies Tweaks 2.107 + Compatibility 2.142 (MineColonies API check
+still running), Palette Swap, TownTalk, Lychee/HTM/Animals Trap(+TFC), TFC More Items, Spindles, Ore Washing, Farmers TFC + Farmer's Delight, Neruina, spark. Multi-Piston: pending.
+Regenerate: `python3 scripts/build_crownfall_lock.py <jar_dir> <version> [--group core]` (reads pack/crownfall/decisions.json for skipped/already_in_tfg).
+Per-mod decisions for all 128: pack/crownfall/decisions.json. TFG mod id list: pack/crownfall/tfg_mod_ids.json (used by the verifier).
+
+## Coins / currency (lead's note + what the Crownfall configs show)
+- TFG coins come from BOTH the GT forming press (nugget + cylinder casting mold) and Create pressing (nugget -> coin: copper/wrought iron/steel/gold/brass/zinc/blue steel), createdeco coins.
+- SDM Economy is a LEDGER currency (config/SDMEconomy/currencies/currencies.data: id `sdmcoin`, symbol, default value), it needs no item.
+- War 'N Taxes pays taxes into that ledger (`SDMCurrencyName = "sdmcoin"`) and has `CurrencyItemName = "minecraft:emerald"` (default) for the item form: set it to a TFG coin item id
+  (lead to name the createdeco coin id) or leave ledger-only. War 'n Nobility `buyin_item` was set to minecraft:structure_void in Crownfall so rank cannot be bought.
+- Crownfall made its own coin items with KubeJS (kubejs:penny/mark/noble, startup script crownfall_coins.js) and re-pointed vanilla iron/gold/emerald recipe inputs of caravansconvoys,
+  warnnobility and hundred_years_war to `#c:ingots/wrought_iron` / `#c:ingots/gold` (kubejs/server_scripts/crownfall_economy.js): TFG has the same problem (no vanilla iron), so those recipes need a KubeJS patch.
+
 ## Checklist
 - [x] Crownfall id mapping, CurseForge file lists, candidate jars + mods.toml
-- [ ] TFC API resolve vs bundled TFC 3.2.28 for TFC addons
-- [ ] MineColonies API resolve for MC addons
-- [ ] Mixin overlap vs TFG jars
-- [ ] Coins/currency check for SDM Economy / War N Taxes (lead: TFG coins come from GT forming press AND Create pressing nugget->coin; createdeco coins)
-- [ ] additions.json, verify_additions.py + test
+- [x] TFC API resolve vs bundled TFC 3.2.28: Farmers TFC OK (112 refs, 0 missing); TFC Astikor Carts 1.1.9 OK; Survivor's Abilities OK (but skipped for mixin overlap); Butchercraft,
+      HTM, TFC More Items, Spindles, Ore Washing, Animals Trap TFC reference no net/dries007/tfc classes at all (data-driven; data ids untested until boot).
+      NOTE: lab/api_check.py's resolver reported false MISSING for constructors (javap names them by class, the checker looked for <init>, and kept quotes on the name): fixed in the copy used here.
+- [ ] MineColonies API resolve for MC addons (running; javap on the 78 MB jar is slow)
+- [ ] Mixin overlap table (done for includes in the core set, see below)
+- [x] additions.json v1, verify_additions.py + test

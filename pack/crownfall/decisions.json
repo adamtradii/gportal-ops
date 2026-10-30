@@ -1,0 +1,1124 @@
+[
+ {
+  "index": 0,
+  "name": "Animals Trap (by sir_Robson)",
+  "slug": "animals-trap",
+  "cf_project_id": 954291,
+  "crownfall_file_id": 7156034,
+  "decision": "include"
+ },
+ {
+  "index": 1,
+  "name": "Domum Ornamentum (by OrionOnline)",
+  "slug": "domum-ornamentum",
+  "cf_project_id": 527361,
+  "crownfall_file_id": 7789217,
+  "decision": "already_in_tfg",
+  "tfg_file": "domum_ornamentum-1.20.1-1.0.304-snapshot-universal.jar"
+ },
+ {
+  "index": 2,
+  "name": "Cold Sweat (by Mikul)",
+  "slug": "cold-sweat",
+  "cf_project_id": 506194,
+  "crownfall_file_id": 8888797,
+  "decision": "skip",
+  "reason": "overlaps TFG-Core body temperature (+ tfc-ambiental-refreshed); Cold Sweat would double-handle player temperature"
+ },
+ {
+  "index": 3,
+  "name": "Survivor's Abilities (by vomiter)",
+  "slug": "survivors-abilities",
+  "cf_project_id": 1354890,
+  "crownfall_file_id": 8577849,
+  "decision": "skip",
+  "reason": "Survivor's Abilities mixes TFCFoodData.tick, ForgeEventHandler.onPlayerTick (overburdened), NutritionData; TFG-Core mixes the same methods (TFCFoodDataMixin, TFCFoodDataNutrientEffectsMixin, NutritionDataMixin, ForgeEventHandlerMixin). Survivor's Butchery hard-requires it"
+ },
+ {
+  "index": 4,
+  "name": "Simple Voice Chat (by henkelmax)",
+  "slug": "simple-voice-chat",
+  "cf_project_id": 416089,
+  "crownfall_file_id": 8601207,
+  "decision": "already_in_tfg",
+  "tfg_file": "voicechat-forge-1.20.1-2.6.26.jar"
+ },
+ {
+  "index": 5,
+  "name": "ArborFirmaCraft (by Therighton)",
+  "slug": "arborfirmacraft",
+  "cf_project_id": 877545,
+  "crownfall_file_id": 8722148,
+  "decision": "already_in_tfg",
+  "tfg_file": "afc-1.0.23-1.20.1.jar"
+ },
+ {
+  "index": 6,
+  "name": "SDM Engine Core (by Sixik)",
+  "slug": "sdm-engine-core",
+  "cf_project_id": 964997,
+  "crownfall_file_id": 5968080,
+  "decision": "skip",
+  "reason": "not required: SDM Shop 7.2.2 / SDM Economy 2.2.0 mods.toml depend only on architectury, sdm_ui_lib, ftblibrary, sdmeconomy"
+ },
+ {
+  "index": 7,
+  "name": "KubeJS Minecolonies Events (by Lillo97)",
+  "slug": "kubejs-minecolonies-events",
+  "cf_project_id": 1400413,
+  "crownfall_file_id": 7686293,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 8,
+  "name": "Small Ships (by talhanation)",
+  "slug": "small-ships",
+  "cf_project_id": 450659,
+  "crownfall_file_id": 9205243,
+  "decision": "include"
+ },
+ {
+  "index": 9,
+  "name": "Hundred Years Warfare (by ydmsama)",
+  "slug": "hundred-years-warfare",
+  "cf_project_id": 1286643,
+  "crownfall_file_id": 8688817,
+  "decision": "include"
+ },
+ {
+  "index": 10,
+  "name": "Lootr (Forge & NeoForge) (by Noobanidus)",
+  "slug": "lootr",
+  "cf_project_id": 361276,
+  "crownfall_file_id": 8968561,
+  "decision": "already_in_tfg",
+  "tfg_file": "lootr-forge-1.20-0.7.35.94.jar"
+ },
+ {
+  "index": 11,
+  "name": "Knight'sArmory32X32 (by Reymecos_TheArmorSmith)",
+  "slug": "knightarmory",
+  "cf_project_id": 950761,
+  "crownfall_file_id": 8797850,
+  "decision": "skip",
+  "reason": "resource pack / shader, not a mod (no 1.20.1 build or not needed; TFG ships its own resource packs)"
+ },
+ {
+  "index": 12,
+  "name": "Aures - TFC Livestock Skins (by BlackAuresArt)",
+  "slug": "aures-tfc-livestock-skins",
+  "cf_project_id": 1599841,
+  "crownfall_file_id": 8380244,
+  "decision": "skip",
+  "reason": "resource pack / shader, not a mod (no 1.20.1 build or not needed; TFG ships its own resource packs)"
+ },
+ {
+  "index": 13,
+  "name": "Better Advanced Tooltips (by Lat)",
+  "slug": "better-advanced-tooltips",
+  "cf_project_id": 1637623,
+  "crownfall_file_id": 8576077,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 14,
+  "name": "MezzConfig (by mezz)",
+  "slug": "mezzconfig",
+  "cf_project_id": 1689768,
+  "crownfall_file_id": 9318719,
+  "decision": "skip",
+  "reason": "TFG uses EMI; JEI would duplicate the recipe viewer (JEBr and MezzConfig exist only for JEI)"
+ },
+ {
+  "index": 15,
+  "name": "Stone Crude Age  - (HardRock Tools & Materials) (by sir_Robson)",
+  "slug": "hardrock-tools-materials",
+  "cf_project_id": 948055,
+  "crownfall_file_id": 7130972,
+  "decision": "include"
+ },
+ {
+  "index": 16,
+  "name": "Trotting Wagons (by Favouriteless)",
+  "slug": "trotting-wagons",
+  "cf_project_id": 1313811,
+  "crownfall_file_id": 7659858,
+  "decision": "include"
+ },
+ {
+  "index": 17,
+  "name": "FirmaNutrition (by JotredDev)",
+  "slug": "firmanutrition",
+  "cf_project_id": 1360893,
+  "crownfall_file_id": 8652849,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 18,
+  "name": "Crash Assistant (by KostromDan)",
+  "slug": "crash-assistant",
+  "cf_project_id": 1154099,
+  "crownfall_file_id": 8636685,
+  "decision": "already_in_tfg",
+  "tfg_file": "CrashAssistant-forge-1.19-1.20.1-1.11.12.jar"
+ },
+ {
+  "index": 19,
+  "name": "Puzzles Lib (by Fuzs)",
+  "slug": "puzzles-lib",
+  "cf_project_id": 495476,
+  "crownfall_file_id": 9276690,
+  "decision": "already_in_tfg",
+  "tfg_file": "PuzzlesLib-v8.1.36-1.20.1-Forge.jar"
+ },
+ {
+  "index": 20,
+  "name": "Tweaks addon for MineColonies (by supernover0102)",
+  "slug": "minecolonies-tweaks",
+  "cf_project_id": 975812,
+  "crownfall_file_id": 8600087,
+  "decision": "include"
+ },
+ {
+  "index": 21,
+  "name": "Euphoria Patches (by SpacEagle17)",
+  "slug": "euphoria-patches",
+  "cf_project_id": 915902,
+  "crownfall_file_id": 8884680,
+  "decision": "already_in_tfg",
+  "tfg_file": "EuphoriaPatcher-1.10.5-r5.9.3-forge.jar"
+ },
+ {
+  "index": 22,
+  "name": "FirmaLife (by EERussianguy)",
+  "slug": "firmalife",
+  "cf_project_id": 453394,
+  "crownfall_file_id": 8994973,
+  "decision": "already_in_tfg",
+  "tfg_file": "Firmalife-1.20.1-2.1.28.jar"
+ },
+ {
+  "index": 23,
+  "name": "TerraFirmaCraft AnvilHelper (by Fox2Code)",
+  "slug": "terrafirmacraft-anvilhelper",
+  "cf_project_id": 1348176,
+  "crownfall_file_id": 7011636,
+  "decision": "already_in_tfg",
+  "tfg_file": "tfc-anvil-helper-patched (TFG patched build)"
+ },
+ {
+  "index": 24,
+  "name": "Distant Horizons: A Level of Detail mod (by James_Seibel)",
+  "slug": "distant-horizons",
+  "cf_project_id": 508933,
+  "crownfall_file_id": 9004764,
+  "decision": "skip",
+  "reason": "renderer/LOD mod; heavy on a server, overlaps Oculus/Embeddium stack TFG ships; owner-listed overlap"
+ },
+ {
+  "index": 25,
+  "name": "Connectivity (by someaddon)",
+  "slug": "connectivity",
+  "cf_project_id": 470193,
+  "crownfall_file_id": 9008904,
+  "decision": "skip",
+  "reason": "TFG ships packet-fixer + krypton-fnp which do the same job"
+ },
+ {
+  "index": 26,
+  "name": "Survivor's Butchery [TFC x Butchercraft] (by vomiter)",
+  "slug": "survivors-butchery-tfc-x-butchercraft",
+  "cf_project_id": 1415827,
+  "crownfall_file_id": 9145451,
+  "decision": "skip",
+  "reason": "Survivor's Abilities mixes TFCFoodData.tick, ForgeEventHandler.onPlayerTick (overburdened), NutritionData; TFG-Core mixes the same methods (TFCFoodDataMixin, TFCFoodDataNutrientEffectsMixin, NutritionDataMixin, ForgeEventHandlerMixin). Survivor's Butchery hard-requires it"
+ },
+ {
+  "index": 27,
+  "name": "TFC Cold Sweat (by oatobaazul)",
+  "slug": "tfc-cold-sweat",
+  "cf_project_id": 1130934,
+  "crownfall_file_id": 8222048,
+  "decision": "skip",
+  "reason": "overlaps TFG-Core body temperature (+ tfc-ambiental-refreshed); Cold Sweat would double-handle player temperature"
+ },
+ {
+  "index": 28,
+  "name": "Block Runner (by Fuzs)",
+  "slug": "block-runner",
+  "cf_project_id": 442842,
+  "crownfall_file_id": 6215039,
+  "decision": "already_in_tfg",
+  "tfg_file": "BlockRunner-v8.0.4-1.20.1-Forge.jar"
+ },
+ {
+  "index": 29,
+  "name": "Lychee (Neo/Forge) (by Snownee)",
+  "slug": "lychee",
+  "cf_project_id": 567403,
+  "crownfall_file_id": 8487293,
+  "decision": "include"
+ },
+ {
+  "index": 30,
+  "name": "Explosive Enhancement: Reforged (by xylonity)",
+  "slug": "explosive-enhancement-reforged",
+  "cf_project_id": 1036246,
+  "crownfall_file_id": 8965905,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 31,
+  "name": "Better Combat [Fabric & Forge] (by daedelus_dev)",
+  "slug": "better-combat-by-daedelus",
+  "cf_project_id": 639842,
+  "crownfall_file_id": 8430183,
+  "decision": "skip",
+  "reason": "changes global combat; crew bodies call Player.attack; needs playerAnimator which has no Forge 1.20.1 build in CurseForge's list"
+ },
+ {
+  "index": 32,
+  "name": "Kiwi 🥝 (Neo/Forge) (by Snownee)",
+  "slug": "kiwi",
+  "cf_project_id": 303657,
+  "crownfall_file_id": 8423062,
+  "decision": "skip",
+  "reason": "Kiwi is only an OPTIONAL dependency of Lychee 5.2.1 (read mods.toml); its mixins also hit FastSuite's AuxRecipeManager and GameData (ModernFix)"
+ },
+ {
+  "index": 33,
+  "name": "Astikor Carts TFC (by Verph)",
+  "slug": "astikor-carts-tfc",
+  "cf_project_id": 844019,
+  "crownfall_file_id": 8054123,
+  "decision": "already_in_tfg",
+  "tfg_file": "TFCAstikorCarts-1.20.1-1.1.8.3.jar (Crownfall has 1.1.9; TFG keeps 1.1.8.3. 1.1.9 also resolves against the bundled TFC)"
+ },
+ {
+  "index": 34,
+  "name": "Drippy Loading Screen (by Keksuccino)",
+  "slug": "drippy-loading-screen",
+  "cf_project_id": 511770,
+  "crownfall_file_id": 8552907,
+  "decision": "already_in_tfg",
+  "tfg_file": "drippyloadingscreen_forge_3.1.0_MC_1.20.1.jar"
+ },
+ {
+  "index": 35,
+  "name": "Minecolonies: War 'N Taxes  (by mchivelli)",
+  "slug": "minecolonies-war-n-taxes",
+  "cf_project_id": 1129258,
+  "crownfall_file_id": 8761250,
+  "decision": "include"
+ },
+ {
+  "index": 36,
+  "name": "Lithium (Fabric/NeoForge) (by JellySquid)",
+  "slug": "lithium",
+  "cf_project_id": 360438,
+  "crownfall_file_id": 8330365,
+  "decision": "skip",
+  "reason": "no Forge 1.20.1 build (CurseForge file list: Fabric/NeoForge 1.21.x only); TFG ships radium-reforged as its Lithium port"
+ },
+ {
+  "index": 37,
+  "name": "[EMF] Entity Model Features [Fabric & Forge] (by Traben)",
+  "slug": "entity-model-features",
+  "cf_project_id": 844662,
+  "crownfall_file_id": 9188526,
+  "decision": "skip",
+  "reason": "client renderer/cosmetic; TFG already runs Oculus/Embeddium/ImmediatelyFast/EntityCulling and a render-mod mix is a conflict risk"
+ },
+ {
+  "index": 38,
+  "name": "JamLib (by jamalam360)",
+  "slug": "jamlib",
+  "cf_project_id": 623764,
+  "crownfall_file_id": 7766752,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 39,
+  "name": "Just Enough Breeding (JEBr) (by Christofmeg)",
+  "slug": "justenoughbreeding",
+  "cf_project_id": 899386,
+  "crownfall_file_id": 9037421,
+  "decision": "skip",
+  "reason": "TFG uses EMI; JEI would duplicate the recipe viewer (JEBr and MezzConfig exist only for JEI)"
+ },
+ {
+  "index": 40,
+  "name": "AllTheLeaks (Memory Leak Fix) (by Uncandango)",
+  "slug": "alltheleaks",
+  "cf_project_id": 1091339,
+  "crownfall_file_id": 8943912,
+  "decision": "already_in_tfg",
+  "tfg_file": "alltheleaks-1.1.4+1.20.1-forge.jar"
+ },
+ {
+  "index": 41,
+  "name": "Rhino (by Lat)",
+  "slug": "rhino",
+  "cf_project_id": 416294,
+  "crownfall_file_id": 8218748,
+  "decision": "already_in_tfg",
+  "tfg_file": "rhino-forge-2001.2.3-build.10.jar"
+ },
+ {
+  "index": 42,
+  "name": "Jade 🔍 (by Snownee)",
+  "slug": "jade",
+  "cf_project_id": 324717,
+  "crownfall_file_id": 8591319,
+  "decision": "already_in_tfg",
+  "tfg_file": "Jade-1.20.1-Forge-11.13.3.jar"
+ },
+ {
+  "index": 43,
+  "name": "I ❤ TFC (I Heart TFC) (by alekiponi)",
+  "slug": "ihearttfc",
+  "cf_project_id": 1118578,
+  "crownfall_file_id": 7455936,
+  "decision": "already_in_tfg",
+  "tfg_file": "ihearttfc-1.20.1-1.0.2.jar"
+ },
+ {
+  "index": 44,
+  "name": "CoroUtil (by Corosus)",
+  "slug": "coroutil",
+  "cf_project_id": 237749,
+  "crownfall_file_id": 7796187,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 45,
+  "name": "Roads and Roofs TFC (by Therighton)",
+  "slug": "roads-and-roofs-tfc",
+  "cf_project_id": 1048212,
+  "crownfall_file_id": 8336335,
+  "decision": "already_in_tfg",
+  "tfg_file": "rnr-0.2.6-1.20.1.jar"
+ },
+ {
+  "index": 46,
+  "name": "TFC Vessel Tooltip (by HermitOwO)",
+  "slug": "tfc-vessel-tooltip",
+  "cf_project_id": 952386,
+  "crownfall_file_id": 7041417,
+  "decision": "already_in_tfg",
+  "tfg_file": "TFCVesselTooltip-1.20.1-1.1.jar"
+ },
+ {
+  "index": 47,
+  "name": "Caravans & Convoys - Automatic Trade (by Barunn)",
+  "slug": "caravans-convoys-automatic-trade",
+  "cf_project_id": 1599431,
+  "crownfall_file_id": 9294590,
+  "decision": "include"
+ },
+ {
+  "index": 48,
+  "name": "AstikorCarts Redux (by jusipat)",
+  "slug": "astikor-carts-redux",
+  "cf_project_id": 916493,
+  "crownfall_file_id": 8590778,
+  "decision": "already_in_tfg",
+  "tfg_file": "astikorcarts-1.20.1-1.1.8.jar"
+ },
+ {
+  "index": 49,
+  "name": "Starter Kit (by Serilum)",
+  "slug": "starter-kit",
+  "cf_project_id": 390717,
+  "crownfall_file_id": 9259631,
+  "decision": "skip",
+  "reason": "Starter Kit gives items on first login; crew fake players log in as new players. Collective is only its library"
+ },
+ {
+  "index": 50,
+  "name": "Spindles TFC (by sir_Robson)",
+  "slug": "spindles-tfc",
+  "cf_project_id": 1258816,
+  "crownfall_file_id": 7729016,
+  "decision": "include"
+ },
+ {
+  "index": 51,
+  "name": "TFCGenViewer (by NotEnoughMail)",
+  "slug": "tfcgenviewer",
+  "cf_project_id": 1062270,
+  "crownfall_file_id": 8681793,
+  "decision": "already_in_tfg",
+  "tfg_file": "tfcgenviewer-1.20.1-1.5.1.jar"
+ },
+ {
+  "index": 52,
+  "name": "SDM Shop [Forge/Fabric] (Legacy) (by Sixik)",
+  "slug": "sdm-shop",
+  "cf_project_id": 948942,
+  "crownfall_file_id": 7173785,
+  "decision": "include"
+ },
+ {
+  "index": 53,
+  "name": "FTB Ranks (NeoForge) (by FTB)",
+  "slug": "ftb-ranks-forge",
+  "cf_project_id": 314905,
+  "crownfall_file_id": 8878560,
+  "decision": "already_in_tfg",
+  "tfg_file": "ftb-ranks-forge-2001.1.7.jar"
+ },
+ {
+  "index": 54,
+  "name": "TFC Ore Washing (by sir_Robson)",
+  "slug": "tfc-ore-washing",
+  "cf_project_id": 959262,
+  "crownfall_file_id": 8058503,
+  "decision": "include"
+ },
+ {
+  "index": 55,
+  "name": "What Are They Up To (Watut) (by Corosus)",
+  "slug": "what-are-they-up-to",
+  "cf_project_id": 945479,
+  "crownfall_file_id": 6418577,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 56,
+  "name": "TownTalk (by Raycoms)",
+  "slug": "towntalk",
+  "cf_project_id": 900364,
+  "crownfall_file_id": 5653504,
+  "decision": "include"
+ },
+ {
+  "index": 57,
+  "name": "spark (by Iucko)",
+  "slug": "spark",
+  "cf_project_id": 361579,
+  "crownfall_file_id": 6225208,
+  "decision": "include"
+ },
+ {
+  "index": 58,
+  "name": "Just Enough Items (JEI) (by mezz)",
+  "slug": "jei",
+  "cf_project_id": 238222,
+  "crownfall_file_id": 9205121,
+  "decision": "skip",
+  "reason": "TFG uses EMI; JEI would duplicate the recipe viewer (JEBr and MezzConfig exist only for JEI)"
+ },
+ {
+  "index": 59,
+  "name": "BlockUI (by Raycoms)",
+  "slug": "blockui",
+  "cf_project_id": 522992,
+  "crownfall_file_id": 7541336,
+  "decision": "include"
+ },
+ {
+  "index": 60,
+  "name": "Entity View Distance [Unofficial NeoForge] (by LostPattern)",
+  "slug": "entity-view-distance-unofficial-neoforge",
+  "cf_project_id": 1121713,
+  "crownfall_file_id": 5812534,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 61,
+  "name": "Simple Discord Link Bot (by HypherionSA)",
+  "slug": "simple-discord-link-bot-forge-fabric-spigot",
+  "cf_project_id": 541320,
+  "crownfall_file_id": 8884966,
+  "decision": "skip",
+  "reason": "needs an external Discord bot token/config; crew already posts to Discord by webhook. CraterLib is only its library"
+ },
+ {
+  "index": 62,
+  "name": "TFC Textile (by oatobaazul)",
+  "slug": "tfc-textile-cold-sweat-edition",
+  "cf_project_id": 1131271,
+  "crownfall_file_id": 7678182,
+  "decision": "skip",
+  "reason": "overlaps TFG-Core body temperature (+ tfc-ambiental-refreshed); Cold Sweat would double-handle player temperature"
+ },
+ {
+  "index": 63,
+  "name": "TFC Support Indicator (by floweynt)",
+  "slug": "tfc-support-indicator",
+  "cf_project_id": 1195624,
+  "crownfall_file_id": 7699998,
+  "decision": "already_in_tfg",
+  "tfg_file": "tfc_support_indicator-1.0.7+mc1.20.1.jar"
+ },
+ {
+  "index": 64,
+  "name": "CraterLib (by HypherionSA)",
+  "slug": "craterlib",
+  "cf_project_id": 867099,
+  "crownfall_file_id": 8884785,
+  "decision": "skip",
+  "reason": "needs an external Discord bot token/config; crew already posts to Discord by webhook. CraterLib is only its library"
+ },
+ {
+  "index": 65,
+  "name": "FramedBlocks (by XFactHD)",
+  "slug": "framedblocks",
+  "cf_project_id": 441647,
+  "crownfall_file_id": 9137677,
+  "decision": "already_in_tfg",
+  "tfg_file": "FramedBlocks-9.4.3.jar"
+ },
+ {
+  "index": 66,
+  "name": "Structurize (by Raycoms)",
+  "slug": "structurize",
+  "cf_project_id": 298744,
+  "crownfall_file_id": 8610535,
+  "decision": "include"
+ },
+ {
+  "index": 67,
+  "name": "Curios API (by TheIllusiveC4)",
+  "slug": "curios",
+  "cf_project_id": 309927,
+  "crownfall_file_id": 6529130,
+  "decision": "already_in_tfg",
+  "tfg_file": "curios-forge-5.14.1+1.20.1.jar"
+ },
+ {
+  "index": 68,
+  "name": "Clean Swing Through Grass (by Raycoms)",
+  "slug": "clean-swing-through-grass",
+  "cf_project_id": 915308,
+  "crownfall_file_id": 8746293,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 69,
+  "name": "Farmer's Delight (by vectorwing)",
+  "slug": "farmers-delight",
+  "cf_project_id": 398521,
+  "crownfall_file_id": 8765184,
+  "decision": "include"
+ },
+ {
+  "index": 70,
+  "name": "Palette Swap for MineColonies (by DarkAges)",
+  "slug": "palette-swap",
+  "cf_project_id": 1567948,
+  "crownfall_file_id": 8582307,
+  "decision": "include"
+ },
+ {
+  "index": 71,
+  "name": "SDM UI Lib [Forge/Fabric] (by Sixik)",
+  "slug": "sdm-ui-lib",
+  "cf_project_id": 1095061,
+  "crownfall_file_id": 6515615,
+  "decision": "include"
+ },
+ {
+  "index": 72,
+  "name": "New Animals for TerraFirmaCraft (by BlackAuresArt)",
+  "slug": "new-animals-for-terrafirmacraft",
+  "cf_project_id": 1246070,
+  "crownfall_file_id": 8350928,
+  "decision": "already_in_tfg",
+  "tfg_file": "TerraFirmaCraft_New_Animals.zip (resource pack)"
+ },
+ {
+  "index": 73,
+  "name": "KubeJS (by Lat)",
+  "slug": "kubejs",
+  "cf_project_id": 238086,
+  "crownfall_file_id": 8843626,
+  "decision": "already_in_tfg",
+  "tfg_file": "kubejs-forge-2001.6.5-build.24.jar"
+ },
+ {
+  "index": 74,
+  "name": "GeckoLib (by Gecko)",
+  "slug": "geckolib",
+  "cf_project_id": 388172,
+  "crownfall_file_id": 8893490,
+  "decision": "already_in_tfg",
+  "tfg_file": "geckolib-forge-1.20.1-4.8.4.jar"
+ },
+ {
+  "index": 75,
+  "name": "Corpse (by henkelmax)",
+  "slug": "corpse",
+  "cf_project_id": 316582,
+  "crownfall_file_id": 9289316,
+  "decision": "already_in_tfg",
+  "tfg_file": "corpse-forge-1.20.1-1.0.23.jar"
+ },
+ {
+  "index": 76,
+  "name": "Konkrete (by Keksuccino)",
+  "slug": "konkrete",
+  "cf_project_id": 410295,
+  "crownfall_file_id": 5453385,
+  "decision": "already_in_tfg",
+  "tfg_file": "konkrete_forge_1.8.0_MC_1.20-1.20.1.jar"
+ },
+ {
+  "index": 77,
+  "name": "Drippy Early Loading Module (by Keksuccino)",
+  "slug": "drippy-early-loading-module",
+  "cf_project_id": 1390924,
+  "crownfall_file_id": 8552908,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 78,
+  "name": "Farmers TFC (by Vvxzv)",
+  "slug": "farmers-tfc",
+  "cf_project_id": 1318733,
+  "crownfall_file_id": 8700137,
+  "decision": "include"
+ },
+ {
+  "index": 79,
+  "name": "Cupboard (by someaddon)",
+  "slug": "cupboard",
+  "cf_project_id": 326652,
+  "crownfall_file_id": 8889050,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 80,
+  "name": "Configurable (by bawnorton)",
+  "slug": "configurable",
+  "cf_project_id": 1092048,
+  "crownfall_file_id": 9191007,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 81,
+  "name": "playerAnimator (by KosmX)",
+  "slug": "playeranimator",
+  "cf_project_id": 658587,
+  "crownfall_file_id": 7389814,
+  "decision": "skip",
+  "reason": "changes global combat; crew bodies call Player.attack; needs playerAnimator which has no Forge 1.20.1 build in CurseForge's list"
+ },
+ {
+  "index": 82,
+  "name": "MineColonies: War 'n Nobility (by Barunn)",
+  "slug": "war-n-nobility",
+  "cf_project_id": 1580789,
+  "crownfall_file_id": 9294587,
+  "decision": "include"
+ },
+ {
+  "index": 83,
+  "name": "FerriteCore ((Neo)Forge) (by malte0811)",
+  "slug": "ferritecore",
+  "cf_project_id": 429235,
+  "crownfall_file_id": 7524151,
+  "decision": "already_in_tfg",
+  "tfg_file": "ferritecore-6.0.1-forge.jar"
+ },
+ {
+  "index": 84,
+  "name": "TFC More Items (by sir_Robson)",
+  "slug": "tfc-more-items",
+  "cf_project_id": 1189837,
+  "crownfall_file_id": 7161406,
+  "decision": "include"
+ },
+ {
+  "index": 85,
+  "name": "FTB Quests (NeoForge) (by FTB)",
+  "slug": "ftb-quests-forge",
+  "cf_project_id": 289412,
+  "crownfall_file_id": 9298629,
+  "decision": "already_in_tfg",
+  "tfg_file": "ftb-quests-forge-2001.4.22.jar"
+ },
+ {
+  "index": 86,
+  "name": "Epic Knights: Shields, Armor and Weapons [Fabric/Forge/NeoForge] (by magistu_)",
+  "slug": "epic-knights-armor-and-weapons",
+  "cf_project_id": 509041,
+  "crownfall_file_id": 9238324,
+  "decision": "include"
+ },
+ {
+  "index": 87,
+  "name": "Patchouli (by Vazkii)",
+  "slug": "patchouli",
+  "cf_project_id": 306770,
+  "crownfall_file_id": 7730942,
+  "decision": "already_in_tfg",
+  "tfg_file": "Patchouli-1.20.1-85-FORGE.jar"
+ },
+ {
+  "index": 88,
+  "name": "Better With Minecolonies (by Kreezxil)",
+  "slug": "better-with-minecolonies",
+  "cf_project_id": 344906,
+  "crownfall_file_id": 5768073,
+  "decision": "skip",
+  "reason": "Better With MineColonies is a 2023 build (1.20), stale against MineColonies 1.1.1301"
+ },
+ {
+  "index": 89,
+  "name": "TFPRevivedCompat (by Mr101Freaking)",
+  "slug": "tfprevivedcompat",
+  "cf_project_id": 1536193,
+  "crownfall_file_id": 8744585,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 90,
+  "name": "TFC Aged Alcohol (by HermitOwO)",
+  "slug": "tfc-aged-alcohol",
+  "cf_project_id": 880532,
+  "crownfall_file_id": 7172822,
+  "decision": "already_in_tfg",
+  "tfg_file": "TFCAgedAlcohol-1.20.1-2.3.jar"
+ },
+ {
+  "index": 91,
+  "name": "TFC Ore Marker: Expanded (by Quizer9O8)",
+  "slug": "tfc-ore-marker-expanded",
+  "cf_project_id": 1104644,
+  "crownfall_file_id": 7275629,
+  "decision": "skip",
+  "reason": "resource pack / shader, not a mod (no 1.20.1 build or not needed; TFG ships its own resource packs)"
+ },
+ {
+  "index": 92,
+  "name": "NeoOrigins (by CyberDay)",
+  "slug": "neoorigins",
+  "cf_project_id": 1495375,
+  "crownfall_file_id": 9124769,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 93,
+  "name": "JourneyMap (by techbrew)",
+  "slug": "journeymap",
+  "cf_project_id": 32274,
+  "crownfall_file_id": 8923668,
+  "decision": "skip",
+  "reason": "TFG ships Xaero's minimap/world map; no 1.20.1 build of the TFC integration"
+ },
+ {
+  "index": 94,
+  "name": "Architectury API (by shedaniel)",
+  "slug": "architectury-api",
+  "cf_project_id": 419699,
+  "crownfall_file_id": 8492726,
+  "decision": "already_in_tfg",
+  "tfg_file": "architectury-9.2.14-forge.jar"
+ },
+ {
+  "index": 95,
+  "name": "FancyMenu (by Keksuccino)",
+  "slug": "fancymenu",
+  "cf_project_id": 367706,
+  "crownfall_file_id": 9002957,
+  "decision": "already_in_tfg",
+  "tfg_file": "fancymenu_forge_3.8.1_MC_1.20.1.jar"
+ },
+ {
+  "index": 96,
+  "name": "Clumps (by Jaredlll08)",
+  "slug": "clumps",
+  "cf_project_id": 256717,
+  "crownfall_file_id": 5623731,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 97,
+  "name": "KubeJS TFC (by NotEnoughMail)",
+  "slug": "kubejs-tfc",
+  "cf_project_id": 841001,
+  "crownfall_file_id": 8841292,
+  "decision": "already_in_tfg",
+  "tfg_file": "kubejs_tfc-1.20.1-1.3.5.jar"
+ },
+ {
+  "index": 98,
+  "name": "Animals Trap for TFC (by sir_Robson)",
+  "slug": "animals-trap-for-tfc",
+  "cf_project_id": 954871,
+  "crownfall_file_id": 7156659,
+  "decision": "include"
+ },
+ {
+  "index": 99,
+  "name": "TerraFirmaCraft (by Dries007)",
+  "slug": "terrafirmacraft",
+  "cf_project_id": 302973,
+  "crownfall_file_id": 9184471,
+  "decision": "already_in_tfg",
+  "tfg_file": "bundled inside TerraFirmaGreg-Core 0.9.31 (tfc 3.2.28)"
+ },
+ {
+  "index": 100,
+  "name": "Cloth Config API (Fabric/Forge/NeoForge) (by shedaniel)",
+  "slug": "cloth-config",
+  "cf_project_id": 348521,
+  "crownfall_file_id": 5729127,
+  "decision": "already_in_tfg",
+  "tfg_file": "cloth-config-11.1.136-forge.jar"
+ },
+ {
+  "index": 101,
+  "name": "Melody (by Keksuccino)",
+  "slug": "melody",
+  "cf_project_id": 938643,
+  "crownfall_file_id": 5453382,
+  "decision": "already_in_tfg",
+  "tfg_file": "melody_forge_1.0.3_MC_1.20.1-1.20.4.jar"
+ },
+ {
+  "index": 102,
+  "name": "Multi-Piston (by Raycoms)",
+  "slug": "multi-piston",
+  "cf_project_id": 303278,
+  "crownfall_file_id": 7097877,
+  "decision": "pending",
+  "reason": "pending in additions_version 1: API check against Structurize/BlockUI not finished (decided in a later version)"
+ },
+ {
+  "index": 103,
+  "name": "Embeddium (by FiniteReality)",
+  "slug": "embeddium",
+  "cf_project_id": 908741,
+  "crownfall_file_id": 6118392,
+  "decision": "already_in_tfg",
+  "tfg_file": "embeddium-0.3.31+mc1.20.1.jar"
+ },
+ {
+  "index": 104,
+  "name": "TFC-MineCol-Compat (by Mr101Freaking)",
+  "slug": "tfc-minecol-compat",
+  "cf_project_id": 1531514,
+  "crownfall_file_id": 8669154,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 105,
+  "name": "MineColonies (by Raycoms)",
+  "slug": "minecolonies",
+  "cf_project_id": 245506,
+  "crownfall_file_id": 9058295,
+  "decision": "include"
+ },
+ {
+  "index": 106,
+  "name": "Neruina - Ticking Entity Fixer (by bawnorton)",
+  "slug": "neruina",
+  "cf_project_id": 851046,
+  "crownfall_file_id": 9220575,
+  "decision": "include"
+ },
+ {
+  "index": 107,
+  "name": "UniLib (by CDAGaming_)",
+  "slug": "unilib",
+  "cf_project_id": 1056812,
+  "crownfall_file_id": 7703679,
+  "decision": "already_in_tfg",
+  "tfg_file": "UniLib-1.2.1+1.20.1-forge.jar"
+ },
+ {
+  "index": 108,
+  "name": "Carry On (by Tschipp)",
+  "slug": "carry-on",
+  "cf_project_id": 274259,
+  "crownfall_file_id": 8512888,
+  "decision": "already_in_tfg",
+  "tfg_file": "carryon-forge-1.20.1-2.1.2.7.jar"
+ },
+ {
+  "index": 109,
+  "name": "Epic Knights: Addon (by magistu_)",
+  "slug": "epic-knights-addon",
+  "cf_project_id": 925866,
+  "crownfall_file_id": 7508989,
+  "decision": "include"
+ },
+ {
+  "index": 110,
+  "name": "FTB Teams (NeoForge) (by FTB)",
+  "slug": "ftb-teams-forge",
+  "cf_project_id": 404468,
+  "crownfall_file_id": 8724782,
+  "decision": "already_in_tfg",
+  "tfg_file": "ftb-teams-forge-2001.3.2.jar"
+ },
+ {
+  "index": 111,
+  "name": "MakeUp - Ultra Fast | Shaders (by XavierFST)",
+  "slug": "makeup-ultra-fast-shader",
+  "cf_project_id": 431203,
+  "crownfall_file_id": 9054810,
+  "decision": "skip",
+  "reason": "client renderer/cosmetic; TFG already runs Oculus/Embeddium/ImmediatelyFast/EntityCulling and a render-mod mix is a conflict risk"
+ },
+ {
+  "index": 112,
+  "name": "TFCDraughtworks (by z1z1y2)",
+  "slug": "tfcdraughtworks",
+  "cf_project_id": 1528172,
+  "crownfall_file_id": 8296452,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 113,
+  "name": "NeOculus (by kaguya154)",
+  "slug": "neoculus",
+  "cf_project_id": 1200907,
+  "crownfall_file_id": 6787071,
+  "decision": "skip",
+  "reason": "client renderer/cosmetic; TFG already runs Oculus/Embeddium/ImmediatelyFast/EntityCulling and a render-mod mix is a conflict risk"
+ },
+ {
+  "index": 114,
+  "name": "FTB Library (NeoForge) (by FTB)",
+  "slug": "ftb-library-forge",
+  "cf_project_id": 404465,
+  "crownfall_file_id": 9008089,
+  "decision": "already_in_tfg",
+  "tfg_file": "ftb-library-forge-2001.2.13.jar"
+ },
+ {
+  "index": 115,
+  "name": "TFC Registry API (by Verph)",
+  "slug": "tfc-registry-api",
+  "cf_project_id": 1396119,
+  "crownfall_file_id": 7324760,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 116,
+  "name": "Wary Predators for TFC (by CorvusIncognitus)",
+  "slug": "wary-predators-for-tfc",
+  "cf_project_id": 1626740,
+  "crownfall_file_id": 9328902,
+  "decision": "skip",
+  "reason": "NeoForge-only: CurseForge file list has only 1.21.x NeoForge files, no Forge 1.20.1 build"
+ },
+ {
+  "index": 117,
+  "name": "[ETF] Entity Texture Features - [Fabric & Forge] (by Traben)",
+  "slug": "entity-texture-features-fabric",
+  "cf_project_id": 568563,
+  "crownfall_file_id": 9188408,
+  "decision": "skip",
+  "reason": "client renderer/cosmetic; TFG already runs Oculus/Embeddium/ImmediatelyFast/EntityCulling and a render-mod mix is a conflict risk"
+ },
+ {
+  "index": 118,
+  "name": "Compatibility addon for MineColonies (by gisellevonbingen)",
+  "slug": "minecolonies-compatibility",
+  "cf_project_id": 1006214,
+  "crownfall_file_id": 7856281,
+  "decision": "include"
+ },
+ {
+  "index": 119,
+  "name": "Butchercraft (by Lance5057)",
+  "slug": "butchercraft",
+  "cf_project_id": 265715,
+  "crownfall_file_id": 7777338,
+  "decision": "include"
+ },
+ {
+  "index": 120,
+  "name": "SDM  Economy [Forge/Fabric] (by Sixik)",
+  "slug": "sdm-economy",
+  "cf_project_id": 1102542,
+  "crownfall_file_id": 6770946,
+  "decision": "include"
+ },
+ {
+  "index": 121,
+  "name": "CraftPresence (by CDAGaming_)",
+  "slug": "craftpresence",
+  "cf_project_id": 297038,
+  "crownfall_file_id": 7704907,
+  "decision": "already_in_tfg",
+  "tfg_file": "CraftPresence-2.7.1+1.20.1-forge.jar"
+ },
+ {
+  "index": 122,
+  "name": "RightClickHarvest (by jamalam360)",
+  "slug": "rightclickharvest",
+  "cf_project_id": 452834,
+  "crownfall_file_id": 7508749,
+  "decision": "skip",
+  "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
+ },
+ {
+  "index": 123,
+  "name": "JourneyMap TFC Integration (by Coin0804)",
+  "slug": "journeymap-tfc-integration",
+  "cf_project_id": 1605985,
+  "crownfall_file_id": 8676615,
+  "decision": "skip",
+  "reason": "TFG ships Xaero's minimap/world map; no 1.20.1 build of the TFC integration"
+ },
+ {
+  "index": 124,
+  "name": "Sophisticated Core (by P3pp3rF1y)",
+  "slug": "sophisticated-core",
+  "cf_project_id": 618298,
+  "crownfall_file_id": 9323125,
+  "decision": "already_in_tfg",
+  "tfg_file": "sophisticatedcore-1.20.1-1.5.16.2433.jar"
+ },
+ {
+  "index": 125,
+  "name": "Mouse Tweaks (by YaLTeR)",
+  "slug": "mouse-tweaks",
+  "cf_project_id": 60089,
+  "crownfall_file_id": 5637846,
+  "decision": "already_in_tfg",
+  "tfg_file": "MouseTweaks-forge-mc1.20.1-2.25.1.jar"
+ },
+ {
+  "index": 126,
+  "name": "Barrels 2012 (by EERussianguy)",
+  "slug": "barrels-2012",
+  "cf_project_id": 662156,
+  "crownfall_file_id": 7255234,
+  "decision": "already_in_tfg",
+  "tfg_file": "barrels_2012-2.1.jar"
+ },
+ {
+  "index": 127,
+  "name": "Collective (by Serilum)",
+  "slug": "collective",
+  "cf_project_id": 342584,
+  "crownfall_file_id": 9292994,
+  "decision": "skip",
+  "reason": "Starter Kit gives items on first login; crew fake players log in as new players. Collective is only its library"
+ }
+]
