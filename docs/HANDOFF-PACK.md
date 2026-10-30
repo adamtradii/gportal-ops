@@ -29,7 +29,7 @@ Anyone picking this up: read this file, then gportal-ops/CLAUDE.md, then tfgwork
 1. Mod audit + lock pack/crownfall/additions.json + AUDIT.md -- helper, gportal-ops branch feat/crownfall-lock. IN PROGRESS.
 2. Pack builder (server tree + CurseForge-import client zip), updater (tfg-update.yml input pack=crownfall|tfg, marker "<tfg>+cf<n>"),
    mod refresh (scripts/refresh_additions.py), pack-release.yml -- helper, gportal-ops branch feat/crownfall-pack (notes docs/CROWNFALL-PACK.md). IN PROGRESS.
-3. Boot test: tfgworkers lab-fullpack.yml input `additions` (lab/packs/crownfall-additions.json) -- helper, tfgworkers branch feat/crownfall-lab. IN PROGRESS.
+3. Boot test: tfgworkers lab-fullpack.yml input `additions` (lab/packs/crownfall-additions.json) -- MERGED tfgworkers dc48b49 (lab/pack_additions.py, lab/boot_scan.py, docs/lab/crownfall-boot.md). Dispatch: additions=lab/packs/crownfall-additions.json boot_wait_s=2400 version_match=0.13.17 spawn_worker=true suite=false (copy the lock there first). A plain-TFG baseline boot (no additions) runs first so the scan shows only what the additions brought.
 4. Lead: review + merge 1 and 2 into gportal-ops main; copy the lock into tfgworkers lab/packs/; dispatch the lab; read the boot log.
 5. tfg-update.yml dry_run=true pack=crownfall; then the OWNER STOPS THE SERVER; real run; tfgworkers deploy-gportal puts the crew mod back if missing;
    owner starts; fetch-logs.yml for 'Done (' and no mod errors; publish the client zip (pack-release.yml) and give Adam the link.
@@ -38,3 +38,4 @@ Never: run the live updater without the lab boot passing; turn on the daily sche
 
 ## Log (PT)
 - 2026-10-29 22:50 lead: helpers started for steps 1-3; this file created.
+- 2026-10-29 23:00 lead: lab change merged (tfgworkers dc48b49); baseline lab-fullpack (plain TFG 0.13.17) dispatched.
