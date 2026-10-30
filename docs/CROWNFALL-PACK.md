@@ -22,3 +22,36 @@ Keep this file current after every step (the owner switches Claude subscriptions
 - `scripts/tfg_ftp.py`: `release` also writes tfg_tag.txt + client_asset_url.txt; `wipe` reads `wipe-extra.txt` (folders the overrides bring,
   validated by `valid_wipe_dir`: never world*, logs, minecolonies, libraries, backups, DiscordIntegration-Data, hidden, nested).
 - Tests: `python3 scripts/test_build_pack.py` (21), `python3 scripts/test_tfg_ftp.py` (13).
+
+## Also built (2026-10-30)
+- `scripts/refresh_additions.py` ("keep the mods up to date"): Modrinth newest Forge 1.20.1 RELEASE per mod (candidate must pass mods.toml checks:
+  Forge jar, loaderVersion covers 47, forge/minecraft dependency ranges cover 47.4.13 / 1.20.1; a failing newer file is skipped with its reason and
+  the next older one tried). CurseForge-id mods stay pinned (no key on a runner) unless `pack/crownfall/cf-updates.json`
+  `{"<mod_id>": {"cf_file_id","filename","url","sha1","size"}}` gives a newer one. Bumps `additions_version` (integer +1) only on change; prints
+  `CHANGED <mod> [side]: old -> new`. Tests: `python3 scripts/test_refresh_additions.py` (10).
+- `build_pack.py` also refuses a missing mandatory dependency of an ADDED jar (jar-in-jar libraries count: `tfc` is inside TerraFirmaGreg-Core;
+  client-side-only deps are ignored on the server; `SKIP_DEP_CHECK=true` overrides).
+- `.github/workflows/tfg-update.yml`: inputs `pack`, `refresh_mods`, `skip_lab`; steps Refresh mods -> Check (release, version, current) -> Build
+  server payload (build_pack.py server) -> Lab gate -> save/wipe/upload/fixes/restore/marker (all gated on the lab gate) -> Commit the refreshed lock.
+  Schedule untouched (frozen).
+- `.github/workflows/pack-release.yml`: client zip -> release `crownfall-<tfg>+cf<n>` of this repo.
+- End-to-end rehearsal on the REAL TFG 0.13.17 assets (local): server tree 4248 TFG files + 1 fake mod, 217 jars; client zip 188 MB, manifest
+  "TFG Crownfall" 0.13.17+cf1 with TFG's 276 CurseForge files; dependency `tfc` resolved through the jar-in-jar inside TerraFirmaGreg-Core.
+
+## NOT done / next
+1. Merge feat/crownfall-lock (additions.json) and this branch to main (lead). Nothing here has run on GitHub Actions yet.
+2. First dispatch (read-only): see "Exact first dry run" below. Then `pack-release.yml` with dry_run=true to prove the client zip builds on a runner.
+3. Boot test of the combined pack (lab) BEFORE the real install; VS2/Eureka-style overlaps (Kotlin For Forge, Ad Astra) belong to the mod-list work.
+4. New mods may need extra server fixes (config lines): add them to FIXES in scripts/tfg_ftp.py (+ CLAUDE.md table).
+5. Schedule stays frozen; unfreeze only on the owner's word.
+
+## Exact first dry run (after both branches are on main)
+Actions -> "TFG auto-update" -> Run workflow: `pack=crownfall`, `dry_run=true`, `refresh_mods=false`, `skip_lab=false`, force=false, wipe_world=false,
+version_match empty. Expect: "pack version ... 0.13.17+cf<n>", every mod "mod <file> <side>" downloaded + checked, "staged ... TFG files",
+"WOULD DELETE (dry run)", the upload plan listing chunks with the mod jars, "WOULD PATCH" fixes, no change on the server.
+Then the same with `refresh_mods=true` to see what the refresh would change (a dry run goes through the lab gate).
+
+## Commands
+- Tests: `python3 scripts/test_tfg_ftp.py && python3 scripts/test_build_pack.py && python3 scripts/test_refresh_additions.py`
+- Local rehearsal: in a scratch dir put tfg_tag.txt, asset_url.txt, client_asset_url.txt (file:// or https URLs) and
+  pack/crownfall/additions.json, then `python3 scripts/build_pack.py version|server|client` (env PACK, ADDITIONS, OVERRIDES, MIN_STAGED_FILES, SLEEP).

@@ -1,0 +1,78 @@
+# Build the TFG Crownfall CLIENT zip and attach it to a release of THIS repo.
+#
+# Players: download the zip from the release page (the repo is private, so the link needs a GitHub login), then in the CurseForge app:
+# Create Custom Profile -> Import -> pick the zip. It is TFG's own CurseForge zip with manifest.json renamed "TFG Crownfall"
+# (version "<tfg>+cf<n>"), the Crownfall mods added (CurseForge ids in the manifest; Modrinth-only mods as jars in overrides/mods)
+# and pack/crownfall/overrides/ laid over TFG's overrides. Built by scripts/build_pack.py (tests: scripts/test_build_pack.py).
+#
+# Inputs:
+#   tfg_version  "latest" (default) or a TFG tag such as 0.13.17 (TFG tags have NO leading v)
+#   dry_run      "true": build + verify the zip, publish nothing
+# Release tag: crownfall-<tfg version>+cf<additions_version>   (asset: TFG-Crownfall-<tfg version>-cf<n>-client.zip)
+# The server side is tfg-update.yml (same additions.json, same version string), so build the client for the same pack version.
+name: Crownfall client release
+on:
+  workflow_dispatch:
+    inputs:
+      tfg_version:
+        description: 'TFG release to build on: "latest" or a tag like 0.13.17'
+        required: false
+        default: latest
+      dry_run:
+        description: 'build and verify only, publish nothing ("true")'
+        required: false
+        default: "false"
+
+concurrency:
+  group: pack-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      PACK: crownfall
+      GH_TOKEN: ${{ github.token }}
+      TFG_VERSION: ${{ inputs.tfg_version }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the TFG release and the pack version
+        run: |
+          if [ -z "$TFG_VERSION" ] || [ "$TFG_VERSION" = "latest" ]; then export VMATCH=""; else export VMATCH="$TFG_VERSION"; fi
+          python3 scripts/tfg_ftp.py release
+          python3 scripts/build_pack.py version
+          test -s client_asset_url.txt || { echo "::error::this TFG release has no *-curseforge.zip asset"; exit 1; }
+
+      - name: Build the client zip (downloads are size+sha1 checked)
+        run: python3 scripts/build_pack.py client
+
+      - name: Publish the release
+        if: env.DRY_RUN != 'true'
+        run: |
+          TAG=$(cat release_tag.txt)
+          ZIP=$(cat client_zip.txt)
+          VER=$(cat pack_version.txt)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+            gh release edit "$TAG" --notes-file dist/RELEASE_NOTES.md
+          else
+            gh release create "$TAG" "$ZIP" --title "TFG Crownfall $VER" --notes-file dist/RELEASE_NOTES.md --target "$GITHUB_SHA"
+          fi
+          URL=$(gh release view "$TAG" --json url --jq .url)
+          echo "RELEASE URL: $URL"
+          {
+            echo "## Client zip published: TFG Crownfall $VER"
+            echo "- Release: $URL"
+            echo "- Players: download the zip (GitHub login needed, the repo is private), CurseForge app -> Create Custom Profile -> Import."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry run result
+        if: env.DRY_RUN == 'true'
+        run: |
+          echo "DRY RUN: built $(cat client_zip.txt) ($(du -h "$(cat client_zip.txt)" | cut -f1)), nothing published (would be tag $(cat release_tag.txt))"
+          echo "## DRY RUN: built $(cat client_zip.txt), would publish tag $(cat release_tag.txt)" >> "$GITHUB_STEP_SUMMARY"

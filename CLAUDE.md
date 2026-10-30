@@ -22,7 +22,37 @@ merge a PR for an ops change - this repo is pushed to `main` directly.
 4. Never put the FTP password anywhere but repository secrets. Never publish
    the Star Wars repo (it carries third-party jars).
 
-## Current state (2026-10-27): INCIDENT + updater frozen
+## Current state (2026-10-30): the pack is "TFG Crownfall" (TFG + Crownfall mods); updater still frozen
+Owner 2026-10-29 22:45 PT: "Add the crownfall mods and TFG into a new pack and configure the autoupdater using that pack."
+Running notes (what is verified, what is next, exact commands): **docs/CROWNFALL-PACK.md**.
+- **Pack = TFG's serverpack + `pack/crownfall/additions.json` mods (side both|server) + `pack/crownfall/overrides/`.** Built by
+  `scripts/build_pack.py` (tests: `python3 scripts/test_build_pack.py`). The lock (`additions.json`) is written by the mod-list work
+  (branch feat/crownfall-lock); every jar is downloaded from its `url` and checked against `size` + `sha1` (REFUSED on mismatch), two jars
+  of one mod id or a missing mandatory dependency of an added mod are refused, all BEFORE the first FTP step.
+- **Marker / pack version = `<tfg tag>+cf<additions_version>`** (e.g. `0.13.17+cf1`) in `.tfg-version` (same file as before). A change
+  of EITHER the TFG release or `additions_version` installs. `pack=tfg` (fall-back) writes the plain tag, so switching packs reinstalls.
+- **Inputs of `tfg-update.yml`:** `dry_run`, `version_match` (TFG tag, no leading v), `force`, `wipe_world`, plus NEW `pack` =
+  crownfall (default) | tfg, `refresh_mods` (default true: `scripts/refresh_additions.py` looks for newer Forge 1.20.1 Modrinth files;
+  CurseForge-id mods stay pinned unless `pack/crownfall/cf-updates.json` gives a newer file; manual runs only), `skip_lab`. A changed
+  lock is built and verified but NOT installed unless `skip_lab=true` (it needs the lab boot test first; the refreshed lock is the
+  artifact `additions-refreshed`); after a successful install the refreshed lock is committed to main with `[skip ci]`.
+- **Fall back to plain TFG:** run "TFG auto-update" with `pack=tfg` (and `refresh_mods=false`). It wipes the same folders and installs the
+  TFG serverpack; folders that only the Crownfall overrides brought (see `wipe-extra.txt` in the run's earlier log) are not known to it
+  and stay until removed by hand.
+- **Wipe list** = `mods config kubejs defaultconfigs scripts tacz patchouli_books` + any other top-level folder the overrides bring
+  (`wipe-extra.txt`, validated: never `world*`, `logs`, `crash-reports`, `libraries`, `backups`, `minecolonies`, `DiscordIntegration-Data`,
+  hidden or nested names; a bad name aborts before any delete). **MineColonies colony data is in `<world>/minecolonies/`** (colonies.dat,
+  per-dimension colony<N>.dat, backups; ldtteam/minecolonies `BackUpHelper`, `LevelResource.ROOT`), i.e. inside `world/`: it survives every
+  run except `wipe_world=true`, which now prints that warning.
+- **Client:** workflow `pack-release.yml` (manual; `tfg_version` latest|tag, `dry_run`) builds TFG's `-curseforge.zip` with manifest name
+  "TFG Crownfall", version `<tfg>+cf<n>`, the CurseForge ids of the added mods (Modrinth-only mods as jars in `overrides/mods`) and the overrides,
+  and attaches `TFG-Crownfall-<tfg>-cf<n>-client.zip` to release `crownfall-<tfg>+cf<n>` of THIS (private) repo.
+- **Verified TFG assets (0.13.17):** `TerraFirmaGreg-Modern-<ver>-serverpack.zip` (no root folder: mods/ config/ kubejs/ defaultconfigs/
+  tacz/ ...) and `TerraFirmaGreg-Modern-<ver>-curseforge.zip` (manifest.json + overrides/). The release API 403s from the cloud sandbox;
+  tags (`git ls-remote`) and `releases/download/...` URLs work.
+- **Schedule still FROZEN** (`.github/TFG_AUTO_UPDATE` = off). Unfreezing would also need a decision on refresh_mods (it never runs on the schedule).
+
+## Earlier state (2026-10-27): INCIDENT + updater frozen (v2 updater, still how the FTP half works)
 - **Incident.** Unattended `tfg-update.yml` runs 40356210574 (10-26, ->0.13.16) and 40530320802 (10-27 15:22-15:57 UTC,
   0.13.15 -> 0.13.17) wiped `mods config ...`, then failed the upload step, so "Re-apply server fixes", "Put back the
   saved files" (crew mod + `config/tfgcrew-common.toml`) and the version marker were SKIPPED. Marker still says 0.13.15
@@ -76,9 +106,11 @@ merge a PR for an ops change - this repo is pushed to `main` directly.
 ## Workflows (dispatch from Actions tab, or via the GitHub MCP
 `actions_run_trigger` with ref=main; the cloud sandbox cannot reach FTP,
 CurseForge, Modrinth or modrepo.de directly - GitHub Actions is the only plane)
-- `tfg-update.yml` - FROZEN daily 09:17 UTC schedule (see Current state) + manual. Compares `.tfg-version` to the
-  newest non-prerelease release; on change (or `force=true`) deletes ONLY
-  `mods config kubejs defaultconfigs scripts tacz patchouli_books`, uploads the
+- `pack-release.yml` - builds + publishes the Crownfall CLIENT zip (see Current state). `docs/CROWNFALL-PACK.md` has the commands.
+- `tfg-update.yml` - FROZEN daily 09:17 UTC schedule (see Current state) + manual. Installs the pack chosen by `pack`
+  (crownfall default = TFG + Crownfall mods, or plain tfg). Compares `.tfg-version` to the pack version of the
+  newest non-prerelease TFG release (+ `+cf<additions_version>`); on change (or `force=true`) deletes ONLY
+  `mods config kubejs defaultconfigs scripts tacz patchouli_books` (+ the overrides' own top-level folders), uploads the
   new pack (listing-free chunked lftp), then re-applies every fix below.
   Never touches the world unless `wipe_world=true` is passed by a human.
   Skips the pack's `server.properties`, `user_jvm_args.txt`, installers,

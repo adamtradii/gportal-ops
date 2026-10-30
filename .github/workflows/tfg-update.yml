@@ -1,4 +1,14 @@
-# Keep the G-Portal server on the right TerraFirmaGreg release.
+# Keep the G-Portal server on the right PACK: "TFG Crownfall" (TerraFirmaGreg Modern + the Crownfall mods, default) or plain TFG.
+#
+# THE PACK (2026-10-30, owner: "add the crownfall mods and TFG into a new pack and configure the autoupdater using that pack")
+#   pack=crownfall (default)  TFG's serverpack + every mod of pack/crownfall/additions.json with side both|server (downloaded, size+sha1
+#                             checked, REFUSED on mismatch) + pack/crownfall/overrides/. Pack version / marker = "<tfg tag>+cf<additions_version>"
+#                             (e.g. 0.13.17+cf1): a change of EITHER part installs. Built by scripts/build_pack.py.
+#   pack=tfg                  plain TFG, marker = the TFG tag (the fall-back; switching packs changes the marker, so it reinstalls).
+#   refresh_mods (default true, manual runs of the crownfall pack only)  scripts/refresh_additions.py first looks for newer Forge 1.20.1
+#                             files of the Modrinth-sourced mods and bumps additions_version. A CHANGED lock is not installed (the run stops
+#                             after the build and uploads the refreshed lock as an artifact) unless skip_lab=true, because a refreshed mod
+#                             must pass the boot test first. After a successful install the refreshed lock is committed back with [skip ci].
 #
 # FROZEN BY DEFAULT (2026-10-27). The daily schedule does nothing unless .github/TFG_AUTO_UPDATE says "on".
 # Why: tfgworkers' crew mod (AI worker bodies) is pinned to a pack version, and tfgworkers/CLAUDE.md says to freeze
@@ -9,10 +19,13 @@
 # Manual inputs:
 #   dry_run=true      read-only rehearsal: reads the server, downloads and stages the pack, prints every generated
 #                     script and what would be deleted/uploaded. No delete, no put, no rm on the server.
-#   version_match     pin a release. A plain version ("0.13.17") means exactly that tag; anything else is a regex
+#   version_match     pin the TFG release. A plain version ("0.13.17") means exactly that tag; anything else is a regex
 #                     over the tag name. Empty = newest. TFG tags have NO leading v (0.13.17).
-#   force=true        reinstall even if the .tfg-version marker already equals the chosen release (needed to
-#                     re-lay a release the marker already names, e.g. repairing a failed install).
+#   force=true        reinstall even if the .tfg-version marker already equals the chosen pack version (needed to
+#                     re-lay a version the marker already names, e.g. repairing a failed install).
+#   pack              crownfall (default) | tfg. See above.
+#   refresh_mods      "true" (default) | "false": look for newer mod files before building (manual runs only).
+#   skip_lab          "true" installs even though refresh_mods changed the lock (only after a lab boot test of that lock).
 #   wipe_world=true   ALSO delete the world. Only when a TFG release note requires it.
 #
 # What a run does (all FTP work lives in scripts/tfg_ftp.py, tested by scripts/test_tfg_ftp.py):
@@ -48,6 +61,20 @@ on:
         description: rehearse only - read the server, print the plan, change nothing ("true")
         required: false
         default: "false"
+      pack:
+        description: "which pack to install: crownfall (TFG + Crownfall mods) or tfg (plain TFG fall-back)"
+        required: false
+        type: choice
+        options: [crownfall, tfg]
+        default: crownfall
+      refresh_mods:
+        description: 'look for newer mod files first (crownfall only; a changed lock stops the run after the build unless skip_lab) ("true"/"false")'
+        required: false
+        default: "true"
+      skip_lab:
+        description: 'install a refreshed lock without the lab boot test ("true")'
+        required: false
+        default: "false"
 
 concurrency:
   group: tfg-update
@@ -57,7 +84,10 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 150
+    permissions:
+      contents: write      # only the "Commit the refreshed lock" step writes
     env:
+      PACK: ${{ inputs.pack || 'crownfall' }}
       # Files that are not the pack's but live inside the folders the update wipes: tfgworkers' deploy-gportal puts the
       # crew mod + its config there. Saved before the wipe, put back after the upload, read back and compared.
       # Exact paths only (G-Portal FTP cannot list). A server-side .keep-files (one path per line) adds to this list.
@@ -83,6 +113,11 @@ jobs:
             echo "run=yes" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Refresh mods (newest Forge 1.20.1 files; the lock only changes on this runner until the install succeeds)
+        id: refresh
+        if: steps.gate.outputs.run == 'yes' && env.PACK == 'crownfall' && github.event_name == 'workflow_dispatch' && inputs.refresh_mods != 'false'
+        run: python3 scripts/refresh_additions.py
+
       - name: Check current vs latest
         id: check
         if: steps.gate.outputs.run == 'yes'
@@ -96,72 +131,68 @@ jobs:
           FORCE: ${{ inputs.force }}
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lftp
-          python3 scripts/tfg_ftp.py release
+          python3 scripts/tfg_ftp.py release          # TFG tag + asset urls
+          python3 scripts/build_pack.py version       # latest.txt := the PACK VERSION (tag, or tag+cf<n>) the marker will hold
           python3 scripts/tfg_ftp.py current
           CURRENT=$(cat current.txt)
           LATEST=$(cat latest.txt)
           echo "current=$CURRENT latest=$LATEST force=${FORCE:-false} dry_run=${DRY_RUN:-false}"
           if [ "$CURRENT" = "$LATEST" ] && [ "${FORCE:-false}" != "true" ] && [ "${DRY_RUN:-false}" != "true" ]; then
             echo "update=no" >> "$GITHUB_OUTPUT"
-            echo "## TFG up to date: $CURRENT" >> "$GITHUB_STEP_SUMMARY"
+            echo "## Pack up to date: $CURRENT (pack=$PACK)" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "update=yes" >> "$GITHUB_OUTPUT"
             echo "LATEST=$LATEST" >> "$GITHUB_ENV"
             echo "ASSET_URL=$(cat asset_url.txt)" >> "$GITHUB_ENV"
             echo "RELEASE_URL=$(cat release_url.txt)" >> "$GITHUB_ENV"
             if [ "${DRY_RUN:-false}" = "true" ]; then
-              echo "## DRY RUN: would move the server from $CURRENT to $LATEST (nothing was changed)" >> "$GITHUB_STEP_SUMMARY"
+              echo "## DRY RUN: would move the server from $CURRENT to $LATEST, pack=$PACK (nothing was changed)" >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
 
+      # Everything that can be wrong with the pack (a bad hash, a missing url, two jars of one mod, a missing dependency)
+      # fails HERE, before the first destructive FTP step. Also writes wipe-extra.txt (folders the overrides bring).
       - name: Build server payload
         if: steps.check.outputs.update == 'yes'
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/build_pack.py server
+
+      # A refreshed lock has not been boot-tested: stop after the build (nothing on the server was touched) unless the
+      # person says skip_lab=true. A dry run is read-only anyway, so it goes through.
+      - name: Lab gate
+        id: labgate
+        if: steps.check.outputs.update == 'yes'
+        env:
+          CHANGED: ${{ steps.refresh.outputs.changed }}
+          SKIP_LAB: ${{ inputs.skip_lab }}
         run: |
-          python3 - <<'EOF'
-          import os, re, shutil, zipfile, urllib.request
-          req = urllib.request.Request(os.environ['ASSET_URL'],
-                                       headers={'User-Agent': 'tfg-auto-update',
-                                                'Accept': 'application/octet-stream'})
-          with urllib.request.urlopen(req, timeout=300) as r, open('serverpack.zip', 'wb') as f:
-              shutil.copyfileobj(r, f)
-          print('downloaded', os.path.getsize('serverpack.zip') // (1 << 20), 'MB')
-          with zipfile.ZipFile('serverpack.zip') as z:
-              bad = z.testzip()
-              if bad:
-                  raise SystemExit('corrupt download, first bad member: %s' % bad)
-              z.extractall('unpack')
-          root = 'unpack'
-          kids = os.listdir(root)
-          if len(kids) == 1 and os.path.isdir(os.path.join(root, kids[0])):
-              root = os.path.join(root, kids[0])
-          SKIP_DIRS = {'libraries'}
-          def skip(fn):
-              l = fn.lower()
-              return (l.endswith(('.bat', '.sh', '.ps1')) or 'installer' in l
-                      or re.match(r'(?:neo)?forge-[\d.]', l)
-                      or l.startswith('minecraft_server')
-                      or l in ('user_jvm_args.txt', 'server.properties'))
-          stage = os.path.abspath('stage'); os.makedirs(stage, exist_ok=True)
-          n = 0
-          for dirpath, dirnames, fns in os.walk(root):
-              rel = os.path.relpath(dirpath, root)
-              if rel.split(os.sep)[0] in SKIP_DIRS:
-                  dirnames[:] = []; continue
-              for fn in fns:
-                  if rel == '.' and skip(fn):
-                      continue
-                  dst = os.path.join(stage, rel, fn) if rel != '.' else os.path.join(stage, fn)
-                  os.makedirs(os.path.dirname(dst), exist_ok=True)
-                  shutil.copyfile(os.path.join(dirpath, fn), dst)
-                  n += 1
-          if n < 1000:
-              raise SystemExit('only %d files staged - refusing to wipe the server for a payload that small' % n)
-          print('staged', n, 'files for', os.environ['LATEST'])
-          EOF
+          if [ "$CHANGED" = "true" ] && [ "$SKIP_LAB" != "true" ] && [ "${DRY_RUN:-false}" != "true" ]; then
+            echo "proceed=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::The mod lock changed (refresh_mods). Built and verified, NOT installed: it needs a lab boot test first."
+            {
+              echo "## NOT INSTALLED: the mod lock changed"
+              echo "The refreshed mods were downloaded, hash-checked and staged, but nothing on the server was touched."
+              echo '```'; cat refresh-report.md; echo '```'
+              echo "Next: boot-test this lock in the lab (artifact 'additions-refreshed' has the file), commit it to pack/crownfall/additions.json,"
+              echo "then run this workflow again with refresh_mods=false, or run it with skip_lab=true to install the refreshed lock as it is."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "proceed=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Keep the refreshed lock for the lab test
+        if: steps.labgate.outputs.proceed == 'no'
+        uses: actions/upload-artifact@v4
+        with:
+          name: additions-refreshed
+          path: |
+            pack/crownfall/additions.json
+            refresh-report.md
 
       - name: Save files that are not the pack's (crew mod, its config)
         id: save
-        if: steps.check.outputs.update == 'yes'
+        if: steps.labgate.outputs.proceed == 'yes'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -171,7 +202,7 @@ jobs:
 
       - name: Remove old pack folders (world untouched)
         id: wipe
-        if: steps.check.outputs.update == 'yes'
+        if: steps.labgate.outputs.proceed == 'yes'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -181,7 +212,7 @@ jobs:
 
       - name: Upload (listing-free, chunked, verified)
         id: upload
-        if: steps.check.outputs.update == 'yes'
+        if: steps.labgate.outputs.proceed == 'yes'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -193,7 +224,7 @@ jobs:
       # have been touched): the fixes and the crew-mod put-back must never be skipped by a failed upload.
       - name: Re-apply server fixes
         id: fixes
-        if: always() && steps.check.outputs.update == 'yes' && steps.wipe.outcome != 'skipped'
+        if: always() && steps.labgate.outputs.proceed == 'yes' && steps.wipe.outcome != 'skipped'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -203,7 +234,7 @@ jobs:
 
       - name: Put back the saved files
         id: restore
-        if: always() && steps.check.outputs.update == 'yes' && steps.wipe.outcome != 'skipped'
+        if: always() && steps.labgate.outputs.proceed == 'yes' && steps.wipe.outcome != 'skipped'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -215,10 +246,30 @@ jobs:
       # otherwise the next run sees the old marker and retries.
       - name: Write version marker (verified)
         id: marker
-        if: always() && steps.check.outputs.update == 'yes' && steps.upload.outcome == 'success' && steps.fixes.outcome == 'success'
+        if: always() && steps.labgate.outputs.proceed == 'yes' && steps.upload.outcome == 'success' && steps.fixes.outcome == 'success'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
           FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
           FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
         run: python3 scripts/tfg_ftp.py marker
+
+      # The lock only becomes the repo's lock once the pack it describes is installed. [skip ci]: no other workflow reacts.
+      - name: Commit the refreshed lock
+        if: steps.marker.outcome == 'success' && steps.refresh.outputs.changed == 'true' && inputs.dry_run != 'true'
+        run: |
+          if [ "$GITHUB_REF_NAME" != "main" ]; then
+            echo "::warning::run is on '$GITHUB_REF_NAME', not main: the refreshed lock is NOT committed (artifact-free); re-run on main"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pack/crownfall/additions.json
+          git diff --cached --quiet && { echo "lock unchanged in git"; exit 0; }
+          git commit -q -m "Refresh Crownfall mod lock to $LATEST [skip ci]" -m "$(cat refresh-report.md)"
+          for i in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && { echo "lock committed"; exit 0; }
+            sleep 5
+          done
+          echo "::error::the server is updated but the refreshed lock could not be pushed; run: git add pack/crownfall/additions.json from the 'additions-refreshed' content or re-run refresh_additions.py"
+          exit 1
