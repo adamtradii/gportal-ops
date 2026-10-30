@@ -899,8 +899,7 @@
   "slug": "multi-piston",
   "cf_project_id": 303278,
   "crownfall_file_id": 7097877,
-  "decision": "pending",
-  "reason": "pending in additions_version 1: API check against Structurize/BlockUI not finished (decided in a later version)"
+  "decision": "include"
  },
  {
   "index": 103,
