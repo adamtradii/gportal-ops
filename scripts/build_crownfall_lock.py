@@ -27,6 +27,7 @@ SPEC = [
  ("core", "Butchercraft", 265715, 6058842, "butchercraft-2.4.1.jar", "both", "Semi-realistic butchering (standalone; Survivor's Butchery integration skipped, see AUDIT)."),
  ("more", "MineColonies Tweaks", 975812, 8600075, "MineColonies_Tweaks-1.20.1-2.107-all.jar", "both", "Citizen tools/config tweaks; hard requirement of MineColonies Compatibility."),
  ("more", "Compatibility addon for MineColonies", 1006214, 9254868, "MineColonies_Compatibility-1.20.1-2.142.jar", "both", "MineColonies compat with other mods (Butchercraft etc.)."),
+ ("more", "Multi-Piston", 303278, 5204918, "multipiston-1.20-1.2.43-RELEASE.jar", "both", "Multi-directional piston block (MineColonies team). RELEASE 1.2.43 chosen; the 2025 snapshot 0.0.47 also resolves against Structurize/BlockUI."),
  ("more", "Palette Swap for MineColonies", 1567948, 8353116, "structurizereplacements-1.20.1-0.4.67.jar", "both", "Re-palette blueprints per block."),
  ("more", "TownTalk", 900364, 5355511, "towntalk-1.20.1-1.1.0.jar", "both", "Citizen voice lines (49 MB)."),
  ("more", "Lychee", 567403, 8030949, "Lychee-1.20.1-Forge-5.2.1.jar", "both", "[optional] Recipe engine, mandatory dependency of Hardrock Tools & Materials."),

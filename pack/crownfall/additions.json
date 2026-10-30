@@ -1,6 +1,6 @@
 {
  "pack_name": "TFG Crownfall",
- "additions_version": "1",
+ "additions_version": "2",
  "base": {
   "repo": "TerraFirmaGreg-Team/Modpack-Modern",
   "tracks": "latest release"
@@ -269,6 +269,286 @@
    "size": 1900376,
    "requires": [],
    "why": "Semi-realistic butchering (standalone; Survivor's Butchery integration skipped, see AUDIT)."
+  },
+  {
+   "name": "MineColonies Tweaks",
+   "mod_id": "minecolonies_tweaks",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 975812,
+   "cf_file_id": 8600075,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "MineColonies_Tweaks-1.20.1-2.107-all.jar",
+   "url": "https://edge.forgecdn.net/files/8600/75/MineColonies_Tweaks-1.20.1-2.107-all.jar",
+   "sha1": "29c8ffed1e5638aaffd1c8841bea1c71ecd98c1d",
+   "size": 970957,
+   "requires": [
+    "minecolonies"
+   ],
+   "why": "Citizen tools/config tweaks; hard requirement of MineColonies Compatibility."
+  },
+  {
+   "name": "Compatibility addon for MineColonies",
+   "mod_id": "minecolonies_compatibility",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 1006214,
+   "cf_file_id": 9254868,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "MineColonies_Compatibility-1.20.1-2.142.jar",
+   "url": "https://edge.forgecdn.net/files/9254/868/MineColonies_Compatibility-1.20.1-2.142.jar",
+   "sha1": "113e15d07af9e939b09dacd27d67f5025f802bb9",
+   "size": 1839971,
+   "requires": [
+    "minecolonies",
+    "minecolonies_tweaks"
+   ],
+   "why": "MineColonies compat with other mods (Butchercraft etc.)."
+  },
+  {
+   "name": "Multi-Piston",
+   "mod_id": "multipiston",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 303278,
+   "cf_file_id": 5204918,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "multipiston-1.20-1.2.43-RELEASE.jar",
+   "url": "https://edge.forgecdn.net/files/5204/918/multipiston-1.20-1.2.43-RELEASE.jar",
+   "sha1": "1fc108ebf5f9fe34cf0366c7b71adf230400a74c",
+   "size": 38718,
+   "requires": [
+    "blockui",
+    "structurize"
+   ],
+   "why": "Multi-directional piston block (MineColonies team). RELEASE 1.2.43 chosen; the 2025 snapshot 0.0.47 also resolves against Structurize/BlockUI."
+  },
+  {
+   "name": "Palette Swap for MineColonies",
+   "mod_id": "structurizereplacements",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 1567948,
+   "cf_file_id": 8353116,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "structurizereplacements-1.20.1-0.4.67.jar",
+   "url": "https://edge.forgecdn.net/files/8353/116/structurizereplacements-1.20.1-0.4.67.jar",
+   "sha1": "a87173788f7b1044cbb17e86af54fdf37ad49a40",
+   "size": 198841,
+   "requires": [
+    "structurize"
+   ],
+   "why": "Re-palette blueprints per block."
+  },
+  {
+   "name": "TownTalk",
+   "mod_id": "towntalk",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 900364,
+   "cf_file_id": 5355511,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "towntalk-1.20.1-1.1.0.jar",
+   "url": "https://edge.forgecdn.net/files/5355/511/towntalk-1.20.1-1.1.0.jar",
+   "sha1": "03e6488b9e762888d1d187d5cf73a60695b63c52",
+   "size": 49194778,
+   "requires": [],
+   "why": "Citizen voice lines (49 MB)."
+  },
+  {
+   "name": "Lychee",
+   "mod_id": "lychee",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 567403,
+   "cf_file_id": 8030949,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "Lychee-1.20.1-Forge-5.2.1.jar",
+   "url": "https://edge.forgecdn.net/files/8030/949/Lychee-1.20.1-Forge-5.2.1.jar",
+   "sha1": "7843a1d6fcb1fd5cb10e2e4296bea595cc8ffe8a",
+   "size": 694814,
+   "requires": [],
+   "why": "[optional] Recipe engine, mandatory dependency of Hardrock Tools & Materials."
+  },
+  {
+   "name": "Stone Crude Age (HardRock Tools & Materials)",
+   "mod_id": "htm",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 948055,
+   "cf_file_id": 6060647,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "htm-1.20.1-forge-1.0.8.jar",
+   "url": "https://edge.forgecdn.net/files/6060/647/htm-1.20.1-forge-1.0.8.jar",
+   "sha1": "3661f609cfa84cc9c85383f3aeb6ecb5ccf71350",
+   "size": 318824,
+   "requires": [
+    "lychee"
+   ],
+   "why": "[optional] Crude-age tools; required by Animals Trap."
+  },
+  {
+   "name": "Animals Trap",
+   "mod_id": "animaltrap",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 954291,
+   "cf_file_id": 4997023,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "AnimalTrap-1.20.1-forge-1.0.1.jar",
+   "url": "https://edge.forgecdn.net/files/4997/23/AnimalTrap-1.20.1-forge-1.0.1.jar",
+   "sha1": "398286205ee602a999e3c2ca0fe15456dd61cf58",
+   "size": 345092,
+   "requires": [
+    "htm"
+   ],
+   "why": "[optional] Small animal traps (beta, Dec 2023)."
+  },
+  {
+   "name": "Animals Trap for TFC",
+   "mod_id": "animaltraptfc",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 954871,
+   "cf_file_id": 4997031,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "AnimalTrapTFC-1.20.1-forge-1.0.1.jar",
+   "url": "https://edge.forgecdn.net/files/4997/31/AnimalTrapTFC-1.20.1-forge-1.0.1.jar",
+   "sha1": "3edf220d4863c4610cbe6b2b5c9c985e59735c3a",
+   "size": 171126,
+   "requires": [
+    "animaltrap",
+    "tfc"
+   ],
+   "why": "[optional] TFC animals for the traps (beta, Dec 2023)."
+  },
+  {
+   "name": "TFC More Items",
+   "mod_id": "tfc_items",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 1189837,
+   "cf_file_id": 6304834,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "tfc_items-1.20.1-forge-1.1.1.jar",
+   "url": "https://edge.forgecdn.net/files/6304/834/tfc_items-1.20.1-forge-1.1.1.jar",
+   "sha1": "62bdce27810e818fe948fb8088531ab60c952387",
+   "size": 1101266,
+   "requires": [],
+   "why": "[optional] Extra TFC items; required by Spindles TFC."
+  },
+  {
+   "name": "Spindles TFC",
+   "mod_id": "tfc_spindles",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 1258816,
+   "cf_file_id": 6749542,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "TFC_Spindles-1.20.1-forge-1.0.1.jar",
+   "url": "https://edge.forgecdn.net/files/6749/542/TFC_Spindles-1.20.1-forge-1.0.1.jar",
+   "sha1": "13cbbcc4cc7fc665b1850db8d5deb79fa9e19107",
+   "size": 156914,
+   "requires": [
+    "tfc_items"
+   ],
+   "why": "[optional] Spinning for TFC."
+  },
+  {
+   "name": "TFC Ore Washing",
+   "mod_id": "tfcorewashing",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 959262,
+   "cf_file_id": 6145630,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "tfc-ore-washing-1.20.1-forge-1.0.6.jar",
+   "url": "https://edge.forgecdn.net/files/6145/630/tfc-ore-washing-1.20.1-forge-1.0.6.jar",
+   "sha1": "5055a504880ca0f33f95bdcf7840dde2719aecb5",
+   "size": 814076,
+   "requires": [
+    "tfc"
+   ],
+   "why": "[optional] Ore washing for TFC."
+  },
+  {
+   "name": "Farmers TFC",
+   "mod_id": "farmerstfc",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 1318733,
+   "cf_file_id": 8700140,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "farmerstfc-2.1.7-1.20.1.jar",
+   "url": "https://edge.forgecdn.net/files/8700/140/farmerstfc-2.1.7-1.20.1.jar",
+   "sha1": "5dace586882855987ec2a2347539effb899ce0cf",
+   "size": 351274,
+   "requires": [
+    "tfc",
+    "farmersdelight"
+   ],
+   "why": "[optional] Farmer's Delight x TFC integration (TFC API check OK vs bundled 3.2.28)."
+  },
+  {
+   "name": "Farmer's Delight",
+   "mod_id": "farmersdelight",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 398521,
+   "cf_file_id": 8765179,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "FarmersDelight-1.20.1-1.3.4.jar",
+   "url": "https://edge.forgecdn.net/files/8765/179/FarmersDelight-1.20.1-1.3.4.jar",
+   "sha1": "26f615fd35f652021f5b0f1cba68afa7d578fe15",
+   "size": 3311051,
+   "requires": [],
+   "why": "[optional] Cooking/farming; required by Farmers TFC."
+  },
+  {
+   "name": "Neruina - Ticking Entity Fixer",
+   "mod_id": "neruina",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 851046,
+   "cf_file_id": 9220570,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "neruina-3.3.5+1.20.1-forge.jar",
+   "url": "https://edge.forgecdn.net/files/9220/570/neruina-3.3.5%2B1.20.1-forge.jar",
+   "sha1": "12cea1380f341863361c6072597a3e84a1428314",
+   "size": 1486117,
+   "requires": [],
+   "why": "[optional] Catches ticking-entity exceptions instead of crashing (beta)."
+  },
+  {
+   "name": "spark",
+   "mod_id": "spark",
+   "side": "both",
+   "source": "curseforge",
+   "cf_project_id": 361579,
+   "cf_file_id": 4738952,
+   "modrinth_project": null,
+   "modrinth_version_id": null,
+   "filename": "spark-1.10.53-forge.jar",
+   "url": "https://edge.forgecdn.net/files/4738/952/spark-1.10.53-forge.jar",
+   "sha1": "231fb325368c0660954f47bfb03493f5246fa4d1",
+   "size": 3114590,
+   "requires": [],
+   "why": "Server profiler for lag diagnosis."
   }
  ],
  "skipped": [
@@ -466,11 +746,6 @@
    "name": "Clumps (by Jaredlll08)",
    "cf_project_id": 256717,
    "reason": "cosmetic/QoL, not needed (Watut + CoroUtil add player status rendering; JamLib/Cupboard/RightClickHarvest/Clean Swing/Explosive Enhancement/Clumps are optional QoL)"
-  },
-  {
-   "name": "Multi-Piston (by Raycoms)",
-   "cf_project_id": 303278,
-   "reason": "pending in additions_version 1: API check against Structurize/BlockUI not finished (decided in a later version)"
   },
   {
    "name": "TFC-MineCol-Compat (by Mr101Freaking)",
