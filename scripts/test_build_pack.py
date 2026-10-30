@@ -257,6 +257,29 @@ class T(unittest.TestCase):
         make_jar(os.path.join(self.w.w, 'x.jar'), ['m1', 'm2'])
         self.assertEqual(build_pack.jar_mod_ids(os.path.join(self.w.w, 'x.jar')), {'m1', 'm2'})
 
+    def _dep_jar(self, dep, side='BOTH'):
+        toml = ('[[mods]]\nmodId="serveronly"\n[[dependencies.serveronly]]\nmodId="%s"\nmandatory=true\n'
+                'versionRange="[1,)"\nside="%s"\n' % (dep, side))
+        with zipfile.ZipFile(os.path.join(self.w.srv, 'serveronly-1.0.jar'), 'w') as z:
+            z.writestr('META-INF/mods.toml', toml)
+        self.w.additions['mods'][0] = self.w.mod('Server Only', 'serveronly', 'server', 'serveronly-1.0.jar', None)
+        self.w.write_additions()
+
+    def test_missing_mandatory_dependency_of_an_added_mod_is_refused(self):
+        self._dep_jar('kotlinforforge')
+        rc, out = self.w.tool('server')
+        self.assertEqual(rc, 1, out)
+        self.assertIn('mandatory dependency "kotlinforforge"', out)
+        self.assertFalse(os.path.exists(os.path.join(self.w.run, 'stage')))
+        rc, out = self.w.tool('server', SKIP_DEP_CHECK='true')
+        self.assertEqual(rc, 0, out)
+
+    def test_dependency_on_a_tfg_mod_or_a_client_side_dep_is_fine(self):
+        self._dep_jar('basemod')
+        self.assertEqual(self.w.tool('server')[0], 0)
+        self._dep_jar('somethingclient', side='CLIENT')
+        self.assertEqual(self.w.tool('server')[0], 0)
+
     def test_tiny_base_payload_is_refused(self):
         rc, out = self.w.tool('server', MIN_STAGED_FILES='1000')
         self.assertEqual(rc, 1, out)

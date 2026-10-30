@@ -234,6 +234,141 @@ def jar_mod_ids(path):
     return ids
 
 
+def _nested_jars(z, depth=0):
+    """Yield open ZipFile objects of META-INF/jarjar/*.jar (jar-in-jar libraries a mod provides), two levels deep."""
+    import io
+    if depth > 1:
+        return
+    for n in z.namelist():
+        if n.startswith('META-INF/jarjar/') and n.endswith('.jar'):
+            try:
+                inner = zipfile.ZipFile(io.BytesIO(z.read(n)))
+            except (zipfile.BadZipFile, KeyError):
+                continue
+            yield inner
+            yield from _nested_jars(inner, depth + 1)
+
+
+def provided_ids(path):
+    """Mod ids a jar provides to the game: its own plus those of its jar-in-jar libraries (TFC lives inside
+    TerraFirmaGreg-Core this way). Used for the dependency check only; the duplicate check uses top-level ids."""
+    ids = set(jar_mod_ids(path) or ())
+    try:
+        with zipfile.ZipFile(path) as z:
+            for inner in _nested_jars(z):
+                try:
+                    t = inner.read('META-INF/mods.toml').decode('utf-8', 'replace')
+                except KeyError:
+                    continue
+                sec = ''
+                for line in t.splitlines():
+                    st = line.strip()
+                    if st.startswith('['):
+                        sec = st.strip('[] \t')
+                    elif sec == 'mods':
+                        m = re.match(r'modId\s*=\s*["\']([^"\']+)["\']', st)
+                        if m:
+                            ids.add(m.group(1))
+    except (zipfile.BadZipFile, OSError):
+        pass
+    return ids
+
+
+def version_key(v):
+    nums = [int(x) for x in re.findall(r'\d+', str(v))]
+    return tuple(nums + [0] * (4 - len(nums)))
+
+
+def range_contains(spec, version):
+    """Maven/Forge version range test ("[47,)", "[1.20,1.21)", "[1.20.1]"). A bare version is only a recommendation
+    (Forge accepts anything), an empty/missing range accepts everything."""
+    spec = (spec or '').strip()
+    if not spec:
+        return True
+    ivs = re.findall(r'([\[(])\s*([^,\]\)\[\(]*?)\s*(?:(,)\s*([^,\]\)\[\(]*?)\s*)?([\])])', spec)
+    if not ivs:
+        return True
+    v = version_key(version)
+    for lb, lo, comma, hi, rb in ivs:
+        if not comma:                                   # "[1.20.1]" = exactly that version
+            if lo and version_key(lo) == v:
+                return True
+            continue
+        ok = True
+        if lo:
+            ok = v > version_key(lo) if lb == '(' else v >= version_key(lo)
+        if ok and hi:
+            ok = v < version_key(hi) if rb == ')' else v <= version_key(hi)
+        if ok:
+            return True
+    return False
+
+
+def jar_meta(path):
+    """What mods.toml says: {'loader','loader_version','mods':[ids],'deps':{owner:[{modId,mandatory,side,versionRange}]}}
+    or {'error': why}. Needs Python 3.11 (tomllib)."""
+    import tomllib
+    try:
+        with zipfile.ZipFile(path) as z:
+            try:
+                raw = z.read('META-INF/mods.toml').decode('utf-8', 'replace')
+            except KeyError:
+                names = set(z.namelist())
+                kind = ('NeoForge' if 'META-INF/neoforge.mods.toml' in names else
+                        'Fabric/Quilt' if 'fabric.mod.json' in names or 'quilt.mod.json' in names else 'unknown')
+                return {'error': 'no META-INF/mods.toml (%s jar, not a Forge 1.20.1 mod)' % kind}
+    except (zipfile.BadZipFile, OSError) as e:
+        return {'error': 'not a readable jar (%s)' % e}
+    try:
+        t = tomllib.loads(raw)
+    except Exception as e:  # noqa: BLE001 - a malformed mods.toml: say so, the caller decides
+        return {'error': 'mods.toml does not parse (%s)' % e}
+    deps = {}
+    for owner, lst in (t.get('dependencies') or {}).items():
+        deps[owner] = [d for d in (lst if isinstance(lst, list) else []) if isinstance(d, dict)]
+    return {'loader': t.get('modLoader'), 'loader_version': t.get('loaderVersion'),
+            'mods': [m.get('modId') for m in t.get('mods', []) if isinstance(m, dict)], 'deps': deps}
+
+
+def check_forge_compat(path, forge='47.4.13', mc='1.20.1'):
+    """Reasons (strings) why a jar is not loadable on Forge <forge> / Minecraft <mc>; [] = compatible."""
+    meta = jar_meta(path)
+    if 'error' in meta:
+        return [meta['error']]
+    why = []
+    if meta['loader'] in ('javafml', 'lowcodefml') and not range_contains(meta.get('loader_version'), forge.split('.')[0]):
+        why.append('loaderVersion %s excludes Forge %s' % (meta.get('loader_version'), forge.split('.')[0]))
+    for owner, lst in meta['deps'].items():
+        for d in lst:
+            if d.get('modId') == 'forge' and not range_contains(d.get('versionRange'), forge):
+                why.append('needs Forge %s, pack has %s' % (d.get('versionRange'), forge))
+            if d.get('modId') == 'minecraft' and not range_contains(d.get('versionRange'), mc):
+                why.append('needs Minecraft %s, pack has %s' % (d.get('versionRange'), mc))
+    return sorted(set(why))
+
+
+def check_dependencies(add_jars, all_jars, server=True):
+    """Mandatory dependencies of the ADDED jars that no jar in the tree (or its jar-in-jar libraries) provides.
+    all_jars: {filename: path} of the whole mods folder. Returns error strings. SKIP_DEP_CHECK=true disables."""
+    if os.environ.get('SKIP_DEP_CHECK', '').lower() == 'true':
+        return []
+    have = {'minecraft', 'forge'}
+    for p in all_jars.values():
+        have |= provided_ids(p)
+    errs = []
+    for fn, p in sorted(add_jars.items()):
+        meta = jar_meta(p)
+        if 'error' in meta:
+            continue                                   # reported by check_duplicates / the refresh
+        for owner, lst in meta['deps'].items():
+            for d in lst:
+                side = str(d.get('side', 'BOTH')).upper()
+                if d.get('mandatory') is True and d.get('modId') not in have and not (server and side == 'CLIENT'):
+                    errs.append('%s: mandatory dependency "%s" is not provided by any jar in the pack (Forge would '
+                                'refuse to load). Add the mod it comes from to additions.json.' % (fn, d.get('modId')))
+    return sorted(set(errs))
+
+
 def check_duplicates(base_jars, add_jars):
     """The classic boot crash is two jars for one mod. base_jars/add_jars: {filename: path}. Returns error strings."""
     errs, owner = [], {}
@@ -356,6 +491,10 @@ def build_server(additions, stage='stage', workdir='.', overrides=None, min_file
         shutil.rmtree(stage, ignore_errors=True)
         fail(errs, 'remove the listed mod(s) from pack/crownfall/additions.json (TFG already has them), or pin an '
                    'older TFG release with version_match.')
+    errs = check_dependencies(add_paths, dict(base_jars, **add_paths))
+    if errs:
+        shutil.rmtree(stage, ignore_errors=True)
+        fail(errs, 'add the missing mod to pack/crownfall/additions.json (a dependency), or drop the mod that needs it.')
     for fn, p in sorted(add_paths.items()):
         shutil.copyfile(p, os.path.join(mods_dir, fn))
     copied, replaced = overlay(overrides, stage)
