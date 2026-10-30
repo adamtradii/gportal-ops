@@ -408,5 +408,75 @@ class T(unittest.TestCase):
         self.assertIsNone(tfg_ftp.pick_client_asset({'assets': []}))
 
 
+FIX = os.path.join(HERE, 'fixtures', 'mods_toml')
+# modIds of the REAL mods.toml files (copied from the jars of additions v1 and TFG's own domum_ornamentum jar,
+# 2026-10-30). Their [[mods]] headers carry comments ("[[mods]] #mandatory"), which the first parser did not survive:
+# every provider with such a header was invisible, so deps on minecolonies, sdm_ui_lib, minecolonytax,
+# domum_ornamentum ... were reported missing (dry run 41011390343).
+REAL_IDS = {
+    'minecolonies-1.20.1-1.1.1301': {'minecolonies'}, 'structurize-1.20.1-1.0.818': {'structurize'},
+    'blockui-1.20.1-1.0.193': {'blockui'}, 'WarNTaxes-5.0.9': {'minecolonytax'},
+    'warnnobility-forge-1.1.4-1.20.1-java17': {'warnnobility'}, 'caravansconvoys-forge-1.0.14-1.20.1-java17': {'caravansconvoys'},
+    'HundredYearsWar-0.7.1r-fix1-1.20.1-forge': {'hundred_years_war'}, 'SDMShop-forge-1.20.1-7.2.2': {'sdmshop'},
+    'SDMEconomy-1.20.1-forge-2.2.0': {'sdmeconomy'}, 'sdm_ui_lib-forge-1.20.1-1.8.3': {'sdm_ui_lib'},
+    'epic-knights-1.20.1-forge-10.15': {'magistuarmory'}, 'epic-knights-addon-1.20.x-forge-2.6': {'magistuarmoryaddon'},
+    'smallships-2.0.2-forge-1.20.1': {'smallships'}, 'trotting_wagons-1.0.4': {'trotting_wagons'},
+    'butchercraft-2.4.1': {'butchercraft'}, 'domum_ornamentum-1.20.1-1.0.304-snapshot-universal': {'domum_ornamentum'},
+}
+
+
+class RealModsToml(unittest.TestCase):
+    def jar_from_fixture(self, name, d):
+        p = os.path.join(d, name + '.jar')
+        with zipfile.ZipFile(p, 'w') as z:
+            z.write(os.path.join(FIX, name + '.mods.toml'), 'META-INF/mods.toml')
+        return p
+
+    def test_every_real_mods_toml_yields_its_mod_id(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        for name, ids in REAL_IDS.items():
+            p = self.jar_from_fixture(name, d)
+            self.assertEqual(build_pack.jar_mod_ids(p), ids, name)
+            self.assertEqual(build_pack.provided_ids(p), ids, name)
+
+    def test_header_and_value_comments_whitespace_and_quotes(self):
+        for text in ('[[mods]] #mandatory\nmodId="a" #mandatory\n', '  [[ mods ]]   # c\n\tmodId = "a"  # c\n',
+                     "[[mods]]\nmodId='a'\n", '[[mods]]\r\nmodId="a"\r\n'):
+            self.assertEqual(build_pack.ids_from_toml(text), {'a'}, text)
+        two = '[[mods]]\nmodId="a"\n[[dependencies.a]]\nmodId="forge"\n[[mods]] #x\nmodId="b"\n[[dependencies.b]] # y\nmodId="c"\n'
+        self.assertEqual(build_pack.ids_from_toml(two), {'a', 'b'})
+        self.assertEqual(build_pack.ids_from_toml('[[mods]]\nmodId="a"\nthis is = not toml ]]\n'), {'a'})   # lenient on bad TOML
+
+    def test_dependency_check_over_the_real_set_finds_every_provider(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        jars = {n + '.jar': self.jar_from_fixture(n, d) for n in REAL_IDS}
+        add = {f: p for f, p in jars.items() if not f.startswith('domum')}
+        tfg = {}                       # mods TFG 0.13.17 ships that the added ones need (same commented header style)
+        for mid in ('architectury', 'ftblibrary', 'cloth_config', 'ftbteams', 'corpse'):
+            p = os.path.join(d, 'tfg-%s.jar' % mid)
+            with zipfile.ZipFile(p, 'w') as z:
+                z.writestr('META-INF/mods.toml', '[[mods]] #mandatory\n  modId="%s" #mandatory\n' % mid)
+            tfg[os.path.basename(p)] = p
+        domum = {f: p for f, p in jars.items() if f.startswith('domum')}
+        errs = build_pack.check_dependencies(add, dict(add, **tfg, **domum))
+        self.assertEqual(errs, [], errs)          # every provider found: minecolonies, structurize, blockui, minecolonytax, sdm_ui_lib, sdmeconomy ...
+        # without TFG's domum_ornamentum the two colony mods DO report it (the check is not toothless) ...
+        errs = build_pack.check_dependencies(add, dict(add, **tfg))
+        self.assertTrue(any('minecolonies-' in e and 'domum_ornamentum' in e for e in errs), errs)
+        self.assertTrue(any('structurize-' in e and 'domum_ornamentum' in e for e in errs), errs)
+        # ... and ONLY that: the bug reported sdm_ui_lib, minecolonytax and minecolonies as missing
+        self.assertEqual({e.split('"')[1] for e in errs}, {'domum_ornamentum'}, errs)
+
+    def test_real_jars_if_present(self):
+        d = os.environ.get('REAL_JARS')
+        if not d or not os.path.isdir(d):
+            self.skipTest('set REAL_JARS=<dir with the downloaded jars> to index real jars')
+        for f in os.listdir(d):
+            if f.endswith('.jar'):
+                self.assertTrue(build_pack.jar_mod_ids(os.path.join(d, f)), f)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)

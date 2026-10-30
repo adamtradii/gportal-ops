@@ -1,0 +1,35 @@
+modLoader = "javafml"
+license = "All Rights Reserved"
+loaderVersion = "[47,)"
+displayURL = "https://www.curseforge.com/minecraft/mc-mods/epic-knights-addon"
+issueTrackerURL = "https://github.com/Magistu/Epic-Knights-Addon/issues"
+logoFile = "icon.png"
+
+[[mods]]
+modId = "magistuarmoryaddon"
+version = "2.6"
+displayName = "Epic Knights: Addon"
+authors = "Magistu, SuperSus890, SteveMe, itzme1on, Desperate_bork, minucius, hoetistic, theblackchimera, Santusio, Flavius_Blue, caballerohospitalario, alhendahu, Reymecos, Skydog"
+credits = "archimedes"
+description = "Adds medieval stuff to the game"
+
+[[dependencies."magistuarmoryaddon"]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."magistuarmoryaddon"]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20,1.21)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."magistuarmoryaddon"]]
+modId = "magistuarmory"
+mandatory = true
+versionRange = "[10.8,)"
+ordering = "AFTER"
+side = "BOTH"

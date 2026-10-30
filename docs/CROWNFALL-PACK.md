@@ -63,3 +63,12 @@ main), prints `REFRESH BRANCH: ...` (log + step summary), and every later step i
 only ever uses the lock on the dispatched ref. To ship a refresh: lab-test the branch's lock -> merge the branch to main -> run "TFG auto-update"
 (refresh_mods=false). The old "commit the refreshed lock to main after the install" step and `skip_lab` are gone. A dry run reports the change,
 pushes nothing and rehearses on the refreshed lock. Exact first dry run is unchanged except there is no `skip_lab` input.
+
+## Dependency-check fix (2026-10-30, branch fix/crownfall-deps)
+Dry run 41011390343 reported `sdm_ui_lib`, `minecolonies`, `minecolonytax` and `domum_ornamentum` as missing. Root cause: the mod-id index recognised only a
+header written exactly `[[mods]]`; real files write `[[mods]] #mandatory` (also `modId="x" #mandatory`), so those jars provided nothing. Fixed in
+`build_pack.ids_from_toml` (lenient line scan + tomllib union; used for top-level and jar-in-jar ids). `domum_ornamentum` is NOT missing: TFG 0.13.17
+ships `domum_ornamentum-1.20.1-1.0.304-snapshot-universal.jar` (it failed to index for the same reason). Evidence: the 15 lock jars downloaded + the 216 jars
+of the real serverpack -> `build_pack.py server` rc=0, 231 jars, zero dependency/duplicate errors. Regression tests use the 16 real mods.toml texts in
+`scripts/fixtures/mods_toml/`; `REAL_JARS=<dir> python3 scripts/test_build_pack.py` also indexes real downloaded jars. If a future lock needs a mod TFG
+really lacks, the error names the dependency (the check still has teeth: a test removes domum and expects exactly that error).

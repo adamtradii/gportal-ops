@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="GPL3"
+
+[[mods]]
+modId="blockui"
+version="1.20.1-1.0.193"
+displayName="UI Library Mod"
+logoFile=""
+credits="LDT Team"
+authors="LDT Team"
+description='''
+UI Library mod, use ctrl+alt+shift+x to open a test-ui
+'''
+
+[[dependencies.blockui]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47.1.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.blockui]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1, 1.21)"
+    ordering="NONE"
+    side="BOTH"
