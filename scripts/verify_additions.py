@@ -101,6 +101,39 @@ def download(url, dest, tries=3):
     return "download failed: %s" % last
 
 
+def mod_ids_of_zip(zf, depth=0):
+    """modIds a jar provides: its [[mods]] entries plus those of its jar-in-jar libraries (two levels). Uses a real TOML parser, so a
+    header like `[[mods]] #mandatory` (Domum Ornamentum) is read correctly."""
+    ids = set()
+    names = zf.namelist()
+    if "META-INF/mods.toml" in names:
+        try:
+            ids |= {m["modId"] for m in tomllib.loads(zf.read("META-INF/mods.toml").decode("utf-8", "replace")).get("mods", [])}
+        except Exception as e:  # unreadable: say so, never pretend it provides nothing silently
+            print("warn: mods.toml unreadable (%s)" % e, file=sys.stderr)
+    if depth < 2:
+        for n in names:
+            if n.startswith("META-INF/jarjar/") and n.endswith(".jar"):
+                try:
+                    import io
+                    ids |= mod_ids_of_zip(zipfile.ZipFile(io.BytesIO(zf.read(n))), depth + 1)
+                except zipfile.BadZipFile:
+                    pass
+    return ids
+
+
+def tfg_ids_from_serverpack(path):
+    """Mod ids of the REAL TFG release: every mods/*.jar of TerraFirmaGreg-Modern-<ver>-serverpack.zip (not pakku-lock.json, which lists
+    projects that the server pack may not carry)."""
+    import io
+    ids = set()
+    z = zipfile.ZipFile(path)
+    for n in z.namelist():
+        if n.startswith("mods/") and n.endswith(".jar"):
+            ids |= mod_ids_of_zip(zipfile.ZipFile(io.BytesIO(z.read(n))))
+    return ids
+
+
 def read_mods_toml(path):
     z = zipfile.ZipFile(path)
     names = z.namelist()
@@ -162,6 +195,7 @@ def main(argv=None):
     root = os.path.dirname(here)
     ap.add_argument("--lock", default=os.path.join(root, "pack/crownfall/additions.json"))
     ap.add_argument("--tfg-ids", default=os.path.join(root, "pack/crownfall/tfg_mod_ids.json"))
+    ap.add_argument("--tfg-serverpack", default=None, help="TFG -serverpack.zip: take the TFG mod ids from its mods/ (preferred over --tfg-ids)")
     ap.add_argument("--only", nargs="*", default=[])
     ap.add_argument("--cache", default=None, help="directory to keep downloads (default: temp dir)")
     ap.add_argument("--no-requires", action="store_true", help="skip the dependency-provided check")
@@ -170,6 +204,10 @@ def main(argv=None):
     tfg_ids = set()
     if os.path.exists(a.tfg_ids):
         tfg_ids = set(json.load(open(a.tfg_ids)))
+    if a.tfg_serverpack:
+        tfg_ids = tfg_ids_from_serverpack(a.tfg_serverpack)
+    if not tfg_ids:
+        print("warn: no TFG mod id list (%s missing/empty): dependencies cannot be checked against TFG" % a.tfg_ids, file=sys.stderr)
     provided = {m["mod_id"] for m in lock["mods"]} | tfg_ids | IMPLICIT
     cache = a.cache or tempfile.mkdtemp(prefix="verify-additions-")
     os.makedirs(cache, exist_ok=True)
@@ -186,6 +224,8 @@ def main(argv=None):
         req = []
         if not errs:
             errs, req = verify_entry(m, dest)
+        if m["mod_id"] in tfg_ids:
+            errs.append("mod id %r is already shipped by TFG: a second jar would crash the boot (duplicate mod)" % m["mod_id"])
         if not a.no_requires:
             for r in req:
                 if r not in provided:
