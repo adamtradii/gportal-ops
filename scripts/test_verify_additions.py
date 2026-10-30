@@ -81,6 +81,22 @@ def main():
     assert run([entry(wrongid, mod_id="nope")], ["otherlib"]) == 1, "wrong mod_id must fail"
     missing = entry(good, url="file://" + os.path.join(d, "does-not-exist.jar"), filename="missing.jar")
     assert run([missing], ["otherlib"]) == 1, "unreachable url must fail"
+    # a mod TFG already ships must not be added a second time
+    assert run([entry(good)], ["otherlib", "fakemod"]) == 1, "duplicate of a TFG mod id must fail"
+    # Domum Ornamentum style header: `[[mods]] #mandatory` must still be read as a provider (the build_pack index missed it)
+    dom = os.path.join(d, "domum.jar")
+    make_jar(dom, 'modLoader="javafml" #mandatory\nloaderVersion="[28,)"\n[[mods]] #mandatory\nmodId="otherlib" #mandatory\nversion="${file.jarVersion}"\n')
+    jj = os.path.join(d, "holder.jar")
+    with zipfile.ZipFile(jj, "w") as z:
+        z.writestr("META-INF/jarjar/inner.jar", open(dom, "rb").read())
+    sp = os.path.join(d, "serverpack.zip")
+    with zipfile.ZipFile(sp, "w") as z:
+        z.write(dom, "mods/domum.jar")
+        z.write(jj, "mods/holder.jar")
+    assert v.tfg_ids_from_serverpack(sp) == {"otherlib"}, v.tfg_ids_from_serverpack(sp)
+    lockp = os.path.join(d, "lock2.json")
+    json.dump({"mods": [entry(good)]}, open(lockp, "w"))
+    assert v.main(["--lock", lockp, "--tfg-ids", os.path.join(d, "none.json"), "--tfg-serverpack", sp, "--cache", os.path.join(d, "c2")]) == 0, "serverpack ids must satisfy the dependency"
     print("test_verify_additions: all checks passed")
 
 

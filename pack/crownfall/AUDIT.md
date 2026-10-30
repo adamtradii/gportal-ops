@@ -75,3 +75,20 @@ Per-mod decisions for all 128: pack/crownfall/decisions.json. TFG mod id list: p
 - [ ] MineColonies API resolve for MC addons (running; javap on the 78 MB jar is slow)
 - [ ] Mixin overlap table (done for includes in the core set, see below)
 - [x] additions.json v1, verify_additions.py + test
+
+## 2026-10-30 correction: Domum Ornamentum IS in TFG (do NOT add a second jar)
+Lead's dry run 41011390343 said `domum_ornamentum` was missing. Evidence read from the real release asset
+`TerraFirmaGreg-Modern-0.13.17-serverpack.zip` (535 MB, 216 jars in mods/): it contains
+`mods/domum_ornamentum-1.20.1-1.0.304-snapshot-universal.jar` (manifest Implementation-Version 1.20.1-1.0.304-snapshot, which satisfies
+MineColonies' `[1.20.1-1.0.288-snapshot, )` and Structurize's `[1.20-1.0.93-ALPHA,)`). The miss is a parser bug in `scripts/build_pack.py jar_mod_ids`:
+Domum's header is `[[mods]] #mandatory` and `s.strip('[] \t')` leaves `mods]] #mandatory`, so the section never equals `mods` and the jar
+provides `set()`. Any jar whose `[[mods]]` header or modId line carries a trailing comment is invisible to that index (the pack helper's
+fix/crownfall-deps covers sdm_ui_lib / minecolonies / minecolonytax the same way; the fix is to parse mods.toml with tomllib).
+Adding Domum to additions.json would put TWO Domum jars in mods/ (build_pack's duplicate check, and Forge, refuse that), so the lock is unchanged (version 1).
+Why the lock verifier passed: it used a real TOML parser and `tfg_mod_ids.json`, which did list domum_ornamentum. What was weak: that list came from
+pakku-lock.json + jars downloaded from it, not from the release. Changes made now:
+- `pack/crownfall/tfg_mod_ids.json` regenerated from the real 0.13.17 serverpack (233 ids incl. jar-in-jar: tfc, flywheel, ponder, kotlinforforge, mixinextras...).
+- `verify_additions.py --tfg-serverpack <zip>` takes the ids straight from the release's mods/ (jar-in-jar included, real TOML parser) and is the preferred source.
+- NEW check: an added mod id that TFG already ships fails (duplicate jar).
+- NEW test: `[[mods]] #mandatory` header + jar-in-jar provider read from a fake serverpack; duplicate-of-TFG fails.
+Run against the real serverpack: all 15 v1 entries pass with 0 problems.
