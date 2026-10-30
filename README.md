@@ -5,8 +5,8 @@ Operations for the G-Portal Minecraft server (Actions tab -> pick workflow -> Ru
 - **tfg-update.yml** - pack update: installs the "TFG Crownfall" pack (TerraFirmaGreg + the Crownfall mods)
   without touching the world. Manual inputs: pack=crownfall|tfg (tfg = plain TerraFirmaGreg fall-back),
   dry_run=true (rehearsal, changes nothing), force=true (redeploy same version), wipe_world=true (ONLY when an
-  update requires a fresh world), version_match (pin the TFG release), refresh_mods (look for newer mod files first),
-  skip_lab (install a refreshed mod list without the lab test). The daily schedule is frozen.
+  update requires a fresh world), version_match (pin the TFG release), refresh_mods (look for newer mod files first; a changed list is pushed to a `pack-refresh/*` branch
+  for lab testing and the run stops, it is never installed by that run). The daily schedule is frozen.
 - **pack-release.yml** - builds the player download (the TFG Crownfall client zip) and attaches it to a release here.
 - **server-file.yml** - get/append/put/delete one server file over FTP.
 - **fetch-logs.yml** - print the server's latest.log tail + newest crash report.

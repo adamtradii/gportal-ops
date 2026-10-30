@@ -32,10 +32,14 @@ Running notes (what is verified, what is next, exact commands): **docs/CROWNFALL
 - **Marker / pack version = `<tfg tag>+cf<additions_version>`** (e.g. `0.13.17+cf1`) in `.tfg-version` (same file as before). A change
   of EITHER the TFG release or `additions_version` installs. `pack=tfg` (fall-back) writes the plain tag, so switching packs reinstalls.
 - **Inputs of `tfg-update.yml`:** `dry_run`, `version_match` (TFG tag, no leading v), `force`, `wipe_world`, plus NEW `pack` =
-  crownfall (default) | tfg, `refresh_mods` (default true: `scripts/refresh_additions.py` looks for newer Forge 1.20.1 Modrinth files;
-  CurseForge-id mods stay pinned unless `pack/crownfall/cf-updates.json` gives a newer file; manual runs only), `skip_lab`. A changed
-  lock is built and verified but NOT installed unless `skip_lab=true` (it needs the lab boot test first; the refreshed lock is the
-  artifact `additions-refreshed`); after a successful install the refreshed lock is committed to main with `[skip ci]`.
+  crownfall (default) | tfg and `refresh_mods` (default true; manual runs of the crownfall pack only): `scripts/refresh_additions.py` looks
+  for newer Forge 1.20.1 Modrinth files (CurseForge-id mods stay pinned unless `pack/crownfall/cf-updates.json` gives a newer file).
+- **Refresh gate (a refreshed mod must pass the boot test before players see it).** If the refresh CHANGES the lock, the run pushes the
+  refreshed `additions.json` to a NEW branch `pack-refresh/<UTC date>-<run id>` (never main), prints the branch name and STOPS before any
+  server step (not even an FTP read). The install only ever uses the lock on the dispatched ref (main). Flow: lead lab-tests that branch's
+  lock, merges it to main, then runs "TFG auto-update" again (refresh_mods=false, or true: an unchanged lock goes straight through).
+  There is no path that installs a refresh from the run that found it, and nothing commits to main from the workflow. A dry run only
+  reports the change (pushes nothing) and rehearses on the refreshed lock.
 - **Fall back to plain TFG:** run "TFG auto-update" with `pack=tfg` (and `refresh_mods=false`). It wipes the same folders and installs the
   TFG serverpack; folders that only the Crownfall overrides brought (see `wipe-extra.txt` in the run's earlier log) are not known to it
   and stay until removed by hand.
@@ -50,7 +54,7 @@ Running notes (what is verified, what is next, exact commands): **docs/CROWNFALL
 - **Verified TFG assets (0.13.17):** `TerraFirmaGreg-Modern-<ver>-serverpack.zip` (no root folder: mods/ config/ kubejs/ defaultconfigs/
   tacz/ ...) and `TerraFirmaGreg-Modern-<ver>-curseforge.zip` (manifest.json + overrides/). The release API 403s from the cloud sandbox;
   tags (`git ls-remote`) and `releases/download/...` URLs work.
-- **Schedule still FROZEN** (`.github/TFG_AUTO_UPDATE` = off). Unfreezing would also need a decision on refresh_mods (it never runs on the schedule).
+- **Schedule still FROZEN** (`.github/TFG_AUTO_UPDATE` = off). The refresh never runs on the schedule.
 
 ## Earlier state (2026-10-27): INCIDENT + updater frozen (v2 updater, still how the FTP half works)
 - **Incident.** Unattended `tfg-update.yml` runs 40356210574 (10-26, ->0.13.16) and 40530320802 (10-27 15:22-15:57 UTC,

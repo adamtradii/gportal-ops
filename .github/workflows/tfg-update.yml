@@ -6,9 +6,10 @@
 #                             (e.g. 0.13.17+cf1): a change of EITHER part installs. Built by scripts/build_pack.py.
 #   pack=tfg                  plain TFG, marker = the TFG tag (the fall-back; switching packs changes the marker, so it reinstalls).
 #   refresh_mods (default true, manual runs of the crownfall pack only)  scripts/refresh_additions.py first looks for newer Forge 1.20.1
-#                             files of the Modrinth-sourced mods and bumps additions_version. A CHANGED lock is not installed (the run stops
-#                             after the build and uploads the refreshed lock as an artifact) unless skip_lab=true, because a refreshed mod
-#                             must pass the boot test first. After a successful install the refreshed lock is committed back with [skip ci].
+#                             files of the Modrinth-sourced mods. If it CHANGES the lock, the run pushes the refreshed lock to a NEW branch
+#                             pack-refresh/<UTC date>-<run id> (never main), prints that branch and STOPS before any server step. The install
+#                             only ever uses the lock on the dispatched ref (main): after the lead boot-tests that branch's lock and merges it,
+#                             run again with refresh_mods=false (or true: an unchanged lock goes straight through).
 #
 # FROZEN BY DEFAULT (2026-10-27). The daily schedule does nothing unless .github/TFG_AUTO_UPDATE says "on".
 # Why: tfgworkers' crew mod (AI worker bodies) is pinned to a pack version, and tfgworkers/CLAUDE.md says to freeze
@@ -24,8 +25,8 @@
 #   force=true        reinstall even if the .tfg-version marker already equals the chosen pack version (needed to
 #                     re-lay a version the marker already names, e.g. repairing a failed install).
 #   pack              crownfall (default) | tfg. See above.
-#   refresh_mods      "true" (default) | "false": look for newer mod files before building (manual runs only).
-#   skip_lab          "true" installs even though refresh_mods changed the lock (only after a lab boot test of that lock).
+#   refresh_mods      "true" (default) | "false": look for newer mod files first (manual runs only). A changed lock goes to a
+#                     review branch and the run stops; it is never installed by the run that found it.
 #   wipe_world=true   ALSO delete the world. Only when a TFG release note requires it.
 #
 # What a run does (all FTP work lives in scripts/tfg_ftp.py, tested by scripts/test_tfg_ftp.py):
@@ -68,13 +69,9 @@ on:
         options: [crownfall, tfg]
         default: crownfall
       refresh_mods:
-        description: 'look for newer mod files first (crownfall only; a changed lock stops the run after the build unless skip_lab) ("true"/"false")'
+        description: 'look for newer mod files first (crownfall only). A changed lock is pushed to a pack-refresh/* branch and the run stops ("true"/"false")'
         required: false
         default: "true"
-      skip_lab:
-        description: 'install a refreshed lock without the lab boot test ("true")'
-        required: false
-        default: "false"
 
 concurrency:
   group: tfg-update
@@ -85,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
-      contents: write      # only the "Commit the refreshed lock" step writes
+      contents: write      # only the "Push the refreshed lock" step writes, and only to a new pack-refresh/* branch
     env:
       PACK: ${{ inputs.pack || 'crownfall' }}
       # Files that are not the pack's but live inside the folders the update wipes: tfgworkers' deploy-gportal puts the
@@ -113,14 +110,53 @@ jobs:
             echo "run=yes" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Refresh mods (newest Forge 1.20.1 files; the lock only changes on this runner until the install succeeds)
+      - name: Refresh mods (newest Forge 1.20.1 files; a changed lock only goes to a review branch)
         id: refresh
         if: steps.gate.outputs.run == 'yes' && env.PACK == 'crownfall' && github.event_name == 'workflow_dispatch' && inputs.refresh_mods != 'false'
         run: python3 scripts/refresh_additions.py
 
+      # A refreshed lock has NOT been boot-tested. It never reaches the server from the run that found it: it goes to a
+      # review branch (a new branch, never main) and the run stops here, before any server step (no FTP read either).
+      # A dry run is read-only: it reports the change, pushes nothing and carries on as a rehearsal on the refreshed lock.
+      - name: Push the refreshed lock to a review branch and stop
+        id: labgate
+        if: steps.gate.outputs.run == 'yes'
+        env:
+          CHANGED: ${{ steps.refresh.outputs.changed }}
+        run: |
+          if [ "$CHANGED" != "true" ]; then
+            echo "proceed=yes" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${DRY_RUN:-false}" = "true" ]; then
+            echo "proceed=yes" >> "$GITHUB_OUTPUT"
+            echo "::notice::DRY RUN: the lock would change (see refresh-report.md); nothing is pushed, rehearsing on the refreshed lock."
+            exit 0
+          fi
+          echo "proceed=no" >> "$GITHUB_OUTPUT"
+          BRANCH="pack-refresh/$(date -u +%Y-%m-%d)-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b "$BRANCH"
+          git add pack/crownfall/additions.json
+          git commit -q -m "Refresh Crownfall mod lock (run ${GITHUB_RUN_ID}) [skip ci]" -m "$(cat refresh-report.md)"
+          for i in 1 2 3; do
+            git push -q origin "HEAD:refs/heads/$BRANCH" && break
+            [ "$i" = 3 ] && { echo "::error::could not push $BRANCH; refresh-report.md in the log shows the change, re-run"; exit 1; }
+            sleep 5
+          done
+          echo "::notice::Refreshed lock pushed to branch $BRANCH. NO server step ran."
+          {
+            echo "## STOPPED: the mod lock changed. Branch: \`$BRANCH\`"
+            echo "Nothing on the server was touched (no FTP at all). Changes:"
+            echo '```'; cat refresh-report.md; echo '```'
+            echo "Next: lab-test the lock on that branch, merge it to main, then run this workflow again (refresh_mods=false)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "REFRESH BRANCH: $BRANCH"
+
       - name: Check current vs latest
         id: check
-        if: steps.gate.outputs.run == 'yes'
+        if: steps.gate.outputs.run == 'yes' && steps.labgate.outputs.proceed == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
@@ -158,41 +194,9 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python3 scripts/build_pack.py server
 
-      # A refreshed lock has not been boot-tested: stop after the build (nothing on the server was touched) unless the
-      # person says skip_lab=true. A dry run is read-only anyway, so it goes through.
-      - name: Lab gate
-        id: labgate
-        if: steps.check.outputs.update == 'yes'
-        env:
-          CHANGED: ${{ steps.refresh.outputs.changed }}
-          SKIP_LAB: ${{ inputs.skip_lab }}
-        run: |
-          if [ "$CHANGED" = "true" ] && [ "$SKIP_LAB" != "true" ] && [ "${DRY_RUN:-false}" != "true" ]; then
-            echo "proceed=no" >> "$GITHUB_OUTPUT"
-            echo "::warning::The mod lock changed (refresh_mods). Built and verified, NOT installed: it needs a lab boot test first."
-            {
-              echo "## NOT INSTALLED: the mod lock changed"
-              echo "The refreshed mods were downloaded, hash-checked and staged, but nothing on the server was touched."
-              echo '```'; cat refresh-report.md; echo '```'
-              echo "Next: boot-test this lock in the lab (artifact 'additions-refreshed' has the file), commit it to pack/crownfall/additions.json,"
-              echo "then run this workflow again with refresh_mods=false, or run it with skip_lab=true to install the refreshed lock as it is."
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "proceed=yes" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Keep the refreshed lock for the lab test
-        if: steps.labgate.outputs.proceed == 'no'
-        uses: actions/upload-artifact@v4
-        with:
-          name: additions-refreshed
-          path: |
-            pack/crownfall/additions.json
-            refresh-report.md
-
       - name: Save files that are not the pack's (crew mod, its config)
         id: save
-        if: steps.labgate.outputs.proceed == 'yes'
+        if: steps.check.outputs.update == 'yes'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -202,7 +206,7 @@ jobs:
 
       - name: Remove old pack folders (world untouched)
         id: wipe
-        if: steps.labgate.outputs.proceed == 'yes'
+        if: steps.check.outputs.update == 'yes'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -212,7 +216,7 @@ jobs:
 
       - name: Upload (listing-free, chunked, verified)
         id: upload
-        if: steps.labgate.outputs.proceed == 'yes'
+        if: steps.check.outputs.update == 'yes'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -224,7 +228,7 @@ jobs:
       # have been touched): the fixes and the crew-mod put-back must never be skipped by a failed upload.
       - name: Re-apply server fixes
         id: fixes
-        if: always() && steps.labgate.outputs.proceed == 'yes' && steps.wipe.outcome != 'skipped'
+        if: always() && steps.check.outputs.update == 'yes' && steps.wipe.outcome != 'skipped'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -234,7 +238,7 @@ jobs:
 
       - name: Put back the saved files
         id: restore
-        if: always() && steps.labgate.outputs.proceed == 'yes' && steps.wipe.outcome != 'skipped'
+        if: always() && steps.check.outputs.update == 'yes' && steps.wipe.outcome != 'skipped'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
@@ -246,30 +250,10 @@ jobs:
       # otherwise the next run sees the old marker and retries.
       - name: Write version marker (verified)
         id: marker
-        if: always() && steps.labgate.outputs.proceed == 'yes' && steps.upload.outcome == 'success' && steps.fixes.outcome == 'success'
+        if: always() && steps.check.outputs.update == 'yes' && steps.upload.outcome == 'success' && steps.fixes.outcome == 'success'
         env:
           HOST: ${{ secrets.GPORTAL_FTP_SERVER }}
           PORT: ${{ secrets.GPORTAL_FTP_PORT }}
           FUSER: ${{ secrets.GPORTAL_FTP_USERNAME }}
           FPASS: ${{ secrets.GPORTAL_FTP_PASSWORD }}
         run: python3 scripts/tfg_ftp.py marker
-
-      # The lock only becomes the repo's lock once the pack it describes is installed. [skip ci]: no other workflow reacts.
-      - name: Commit the refreshed lock
-        if: steps.marker.outcome == 'success' && steps.refresh.outputs.changed == 'true' && inputs.dry_run != 'true'
-        run: |
-          if [ "$GITHUB_REF_NAME" != "main" ]; then
-            echo "::warning::run is on '$GITHUB_REF_NAME', not main: the refreshed lock is NOT committed (artifact-free); re-run on main"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pack/crownfall/additions.json
-          git diff --cached --quiet && { echo "lock unchanged in git"; exit 0; }
-          git commit -q -m "Refresh Crownfall mod lock to $LATEST [skip ci]" -m "$(cat refresh-report.md)"
-          for i in 1 2 3; do
-            git pull -q --rebase origin main && git push -q origin HEAD:main && { echo "lock committed"; exit 0; }
-            sleep 5
-          done
-          echo "::error::the server is updated but the refreshed lock could not be pushed; run: git add pack/crownfall/additions.json from the 'additions-refreshed' content or re-run refresh_additions.py"
-          exit 1

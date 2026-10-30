@@ -31,8 +31,8 @@ Keep this file current after every step (the owner switches Claude subscriptions
   `CHANGED <mod> [side]: old -> new`. Tests: `python3 scripts/test_refresh_additions.py` (10).
 - `build_pack.py` also refuses a missing mandatory dependency of an ADDED jar (jar-in-jar libraries count: `tfc` is inside TerraFirmaGreg-Core;
   client-side-only deps are ignored on the server; `SKIP_DEP_CHECK=true` overrides).
-- `.github/workflows/tfg-update.yml`: inputs `pack`, `refresh_mods`, `skip_lab`; steps Refresh mods -> Check (release, version, current) -> Build
-  server payload (build_pack.py server) -> Lab gate -> save/wipe/upload/fixes/restore/marker (all gated on the lab gate) -> Commit the refreshed lock.
+- `.github/workflows/tfg-update.yml`: inputs `pack`, `refresh_mods` (no skip_lab: removed 2026-10-30 on the lead's review); steps Refresh mods -> Check (release, version, current) -> Build
+  server payload (build_pack.py server) -> save/wipe/upload/fixes/restore/marker. The refresh gate sits between Refresh and Check (below).
   Schedule untouched (frozen).
 - `.github/workflows/pack-release.yml`: client zip -> release `crownfall-<tfg>+cf<n>` of this repo.
 - End-to-end rehearsal on the REAL TFG 0.13.17 assets (local): server tree 4248 TFG files + 1 fake mod, 217 jars; client zip 188 MB, manifest
@@ -46,12 +46,20 @@ Keep this file current after every step (the owner switches Claude subscriptions
 5. Schedule stays frozen; unfreeze only on the owner's word.
 
 ## Exact first dry run (after both branches are on main)
-Actions -> "TFG auto-update" -> Run workflow: `pack=crownfall`, `dry_run=true`, `refresh_mods=false`, `skip_lab=false`, force=false, wipe_world=false,
+Actions -> "TFG auto-update" -> Run workflow: `pack=crownfall`, `dry_run=true`, `refresh_mods=false`, force=false, wipe_world=false,
 version_match empty. Expect: "pack version ... 0.13.17+cf<n>", every mod "mod <file> <side>" downloaded + checked, "staged ... TFG files",
 "WOULD DELETE (dry run)", the upload plan listing chunks with the mod jars, "WOULD PATCH" fixes, no change on the server.
-Then the same with `refresh_mods=true` to see what the refresh would change (a dry run goes through the lab gate).
+Then the same with `refresh_mods=true` to see what the refresh would change (a dry run only reports the change, pushes nothing).
 
 ## Commands
 - Tests: `python3 scripts/test_tfg_ftp.py && python3 scripts/test_build_pack.py && python3 scripts/test_refresh_additions.py`
 - Local rehearsal: in a scratch dir put tfg_tag.txt, asset_url.txt, client_asset_url.txt (file:// or https URLs) and
   pack/crownfall/additions.json, then `python3 scripts/build_pack.py version|server|client` (env PACK, ADDITIONS, OVERRIDES, MIN_STAGED_FILES, SLEEP).
+
+## Refresh gate (lead review 2026-10-30)
+If `refresh_additions.py` changes the lock in a run, the step "Push the refreshed lock to a review branch and stop" commits ONLY
+`pack/crownfall/additions.json` to a new branch `pack-refresh/<UTC date>-<run id>` (`[skip ci]`, GITHUB_TOKEN contents: write, plain push, never
+main), prints `REFRESH BRANCH: ...` (log + step summary), and every later step is skipped: no FTP read, no wipe, no upload, no marker. The install
+only ever uses the lock on the dispatched ref. To ship a refresh: lab-test the branch's lock -> merge the branch to main -> run "TFG auto-update"
+(refresh_mods=false). The old "commit the refreshed lock to main after the install" step and `skip_lab` are gone. A dry run reports the change,
+pushes nothing and rehearses on the refreshed lock. Exact first dry run is unchanged except there is no `skip_lab` input.
