@@ -40,3 +40,4 @@ Never: run the live updater without the lab boot passing; turn on the daily sche
 - 2026-10-29 22:50 lead: helpers started for steps 1-3; this file created.
 - 2026-10-29 23:00 lead: lab change merged (tfgworkers dc48b49); baseline lab-fullpack (plain TFG 0.13.17) dispatched.
 - 2026-10-29 23:20 lead: pack builder done (3b4dfe0), waiting for the lock helper; baseline lab run 41010386860 running.
+- 2026-10-29 23:25 OWNER: "Please create a player side pack too" -> the player pack = the CurseForge-import client zip from pack-release.yml (release tag crownfall-<tfg>+cf<n> in gportal-ops). Publish it right after the lab boot passes (same lock as the server), give Adam the release link, BEFORE the server update so players can switch at once.
