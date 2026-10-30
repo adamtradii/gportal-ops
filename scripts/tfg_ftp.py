@@ -19,7 +19,7 @@ Facts this is built around (all read out of the failed runs 40356210574 and 4053
     which reinstalls the whole pack).
 
 Environment: HOST PORT FUSER FPASS (secrets), DRY_RUN=true (read-only: print plans, change nothing),
-WIPE_WORLD, KEEP_FILES, LATEST, SLEEP (seconds between retries, default 10), LFTP_CMD (JSON argv, tests only).
+WIPE_WORLD, KEEP_FILES, LATEST (= the pack version string: TFG tag, or '<tag>+cf<n>' for the Crownfall pack), SLEEP (seconds between retries, default 10), LFTP_CMD (JSON argv, tests only).
 Subcommands: current | release | save | wipe | upload | fixes | restore | marker
 """
 import filecmp
@@ -36,6 +36,11 @@ DRY = os.environ.get('DRY_RUN', '').strip().lower() == 'true'
 SLEEP = float(os.environ.get('SLEEP', '10'))
 WIPE_DIRS = ['mods', 'config', 'kubejs', 'defaultconfigs', 'scripts', 'tacz', 'patchouli_books']
 WORLD_DIRS = ['world', 'world_nether', 'world_the_end']
+# Folders that must never be wiped, whatever a pack's overrides ask for (wipe-extra.txt, written by build_pack.py).
+# MineColonies keeps ALL colony data in <world>/minecolonies/ (ldtteam/minecolonies BackUpHelper: LevelResource.ROOT +
+# "minecolonies": colonies.dat, <dimension>/colony<N>.dat, backups) i.e. INSIDE the world folder, which only
+# wipe_world=true touches. 'minecolonies' is listed anyway in case a level-name ever puts it at the root.
+PROTECTED_DIRS = {'logs', 'crash-reports', 'libraries', 'backups', 'minecolonies', 'discordintegration-data'}
 PRELUDE = ('set ftp:ssl-allow yes\nset ftp:use-site-chmod no\nset net:max-retries 6\n'
            'set net:reconnect-interval-base 5\nset net:timeout 40\n')
 ABSENT = re.compile(r'(?i)does not exist|no such file|not found')
@@ -144,6 +149,23 @@ def listing(path):
     return names
 
 
+def valid_wipe_dir(d):
+    """May the updater `rm -rf` this top-level folder name because a pack's overrides brought it? One plain path
+    segment; never a world folder, never runtime/log/backup/colony data."""
+    if not d or '/' in d or '\\' in d or d in ('.', '..') or d.startswith('.'):
+        return False
+    l = d.lower()
+    return not (l.startswith('world') or l in PROTECTED_DIRS or d in WORLD_DIRS)
+
+
+def read_extra_wipe(path='wipe-extra.txt'):
+    """(dirs, rejected). The pack build writes the extra folders its overrides bring; absent file = none."""
+    if not os.path.exists(path):
+        return [], []
+    names = [l.strip() for l in open(path) if l.strip() and not l.strip().startswith('#')]
+    return [n for n in names if valid_wipe_dir(n) and n not in WIPE_DIRS], [n for n in names if not valid_wipe_dir(n)]
+
+
 def read_keep(path='keep/.saved'):
     if not os.path.exists(path):
         return []
@@ -171,6 +193,12 @@ def pick_release(rels, vmatch=''):
     return r, zips[0]
 
 
+def pick_client_asset(r):
+    """TFG's CurseForge-app import zip (TerraFirmaGreg-Modern-<ver>-curseforge.zip), or None."""
+    zips = [a for a in r.get('assets', []) if re.search(r'(?i)curseforge', a['name']) and a['name'].endswith('.zip')]
+    return zips[0] if zips else None
+
+
 def cmd_release():
     h = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json',
          'User-Agent': 'tfg-auto-update'}
@@ -191,8 +219,12 @@ def cmd_release():
         say('available tags: ' + ', '.join(x.get('tag_name', '?') for x in rels[:20]))
         raise e
     open('latest.txt', 'w').write(r['tag_name'])
+    open('tfg_tag.txt', 'w').write(r['tag_name'])          # build_pack.py 'version' turns this into the pack version
     open('asset_url.txt', 'w').write(asset['browser_download_url'])
     open('release_url.txt', 'w').write(r['html_url'])
+    client = pick_client_asset(r)
+    if client:
+        open('client_asset_url.txt', 'w').write(client['browser_download_url'])
     say('latest release: %s %s' % (r['tag_name'], asset['name']))
     return 0
 
@@ -270,10 +302,17 @@ def leftovers(d):
 
 
 def cmd_wipe():
-    dirs = WIPE_DIRS + (WORLD_DIRS if os.environ.get('WIPE_WORLD', '').strip().lower() == 'true' else [])
+    extra, rejected = read_extra_wipe()
+    if rejected:                                           # before anything is deleted
+        gha('error', 'wipe-extra.txt names protected/invalid folder(s): %s. Nothing was deleted.' % ', '.join(rejected))
+        return 1
+    dirs = WIPE_DIRS + extra + (WORLD_DIRS if os.environ.get('WIPE_WORLD', '').strip().lower() == 'true' else [])
+    if extra:
+        say('pack overrides add these folders to the wipe: %s' % ', '.join(extra))
     say('%s: rm -rf %s' % ('WOULD DELETE (dry run)' if DRY else 'deleting', ' '.join(dirs)))
     if os.environ.get('WIPE_WORLD', '').strip().lower() == 'true':
-        gha('warning', 'wipe_world=true: the world folders are deleted too')
+        gha('warning', 'wipe_world=true: the world folders are deleted too - that includes MineColonies colonies '
+                       '(world/minecolonies/)')
     pending = {d: None for d in dirs}                       # dir -> specific leftovers from the last look
     for rnd in range(1, 4):
         if not pending:
@@ -530,7 +569,7 @@ def cmd_marker():
     if not ok:
         gha('error', 'the version marker did not write; the next run would reinstall again')
         return 1
-    summary('## TFG updated to %s' % latest)
+    summary('## Pack updated to %s' % latest)
     summary('- Players must install the matching client from %s' % os.environ.get('RELEASE_URL', ''))
     summary('- World untouched (wipe_world was not set). Restart the server in G-Portal to load the update.')
     return 0
